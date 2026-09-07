@@ -2,10 +2,13 @@
 //!
 //! 单一二进制独立微服务 (Single All-in-One Binary):
 //! 彻底解决“既要部署前端 npm 页面，又要部署 Windows 本地服务”的双重地狱痛点。
-//! 双击即可运行，同时提供 Web 界面、REST API 与批量 PDF 打印服务。
+//! 双击即可运行，同时提供 Web 界面、REST API、离线本地模板存储与批量 PDF 打印服务。
+
+mod storage;
 
 use medprint_core::pdf::VectorPdfDoc;
 use medprint_core::units::PhysicalSize;
+use storage::LocalArchiveStore;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
@@ -17,9 +20,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = format!("0.0.0.0:{}", port);
     let listener = TcpListener::bind(&addr).await?;
 
+    let store = Arc::new(LocalArchiveStore::new("data"));
+
     println!("===============================================================");
     println!(" 🏥 MedPrint All-in-One Standalone Microservice");
     println!(" Single Binary Solution for Medical Report Designer & Printing");
+    println!(" Local Offline Archive Directory: ./data/templates/");
     println!(" Listening on: http://localhost:{}", port);
     println!(" Web Studio & API: http://127.0.0.1:{}", port);
     println!("===============================================================");
@@ -28,8 +34,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     loop {
         let (mut socket, _peer_addr) = server.accept().await?;
+        let store = Arc::clone(&store);
+
         tokio::spawn(async move {
-            let mut buffer = [0u8; 4096];
+            let mut buffer = [0u8; 8192];
             match socket.read(&mut buffer).await {
                 Ok(0) => return,
                 Ok(n) => {
@@ -45,6 +53,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nAccess-Control-Allow-Origin: *\r\n\r\n{}",
                             body.len(),
                             body
+                        );
+                        let _ = socket.write_all(resp.as_bytes()).await;
+                    } else if path.starts_with("/api/v1/storage/templates") {
+                        // 列出内网离线存储的全部模板
+                        let templates = store.list_templates();
+                        let body = serde_json::to_string(&templates).unwrap_or_else(|_| "[]".to_string());
+                        let resp = format!(
+                            "HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: {}\r\nAccess-Control-Allow-Origin: *\r\n\r\n{}",
+                            body.len(),
+                            body
+                        );
+                        let _ = socket.write_all(resp.as_bytes()).await;
+                    } else if path.starts_with("/api/v1/storage/export") {
+                        // 导出离线备份归档包
+                        let bundle = store.export_bundle();
+                        let resp = format!(
+                            "HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nContent-Disposition: attachment; filename=\"medprint_archive.json\"\r\nContent-Length: {}\r\nAccess-Control-Allow-Origin: *\r\n\r\n{}",
+                            bundle.len(),
+                            bundle
                         );
                         let _ = socket.write_all(resp.as_bytes()).await;
                     } else if path.starts_with("/api/v1/render/pdf") {
@@ -80,8 +107,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     <div class="card">
         <h1>🏥 MedPrint Medical Studio <span class="badge">v0.1.0 Ready</span></h1>
         <p>面向医疗健康领域的下一代跨平台打印报告单设计器与高性能引擎已成功启动。</p>
-        <h3>内置服务端点 (Endpoints)</h3>
+        <h3>内置服务端点与离线存储 (Endpoints & Offline Storage)</h3>
         <div class="endpoint">GET /api/v1/health - 健康检查</div>
+        <div class="endpoint">GET /api/v1/storage/templates - 医院内网本地模板档案库</div>
+        <div class="endpoint">GET /api/v1/storage/export - 导出全量离线归档备份包 (.json)</div>
         <div class="endpoint">GET /api/v1/render/pdf - 300/600 DPI 纯矢量 A5 横向化验单 PDF 直出</div>
         <a class="btn" href="/api/v1/render/pdf" target="_blank">预览矢量 PDF 测试样张</a>
     </div>

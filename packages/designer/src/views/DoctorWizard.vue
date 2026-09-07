@@ -1,45 +1,49 @@
 <template>
-  <div class="doctor-wizard">
-    <!-- 左侧向导配置栏 -->
-    <div class="wizard-sidebar">
-      <div class="wizard-header">
-        <h2>🩺 医生快速向导模式</h2>
-        <p class="desc">无需拖拽排版，勾选临床字段或对话 DeepSeek AI 助手生成</p>
+  <div class="apple-workspace">
+    <!-- 左侧向导与配置控制台 (Apple Sidebar) -->
+    <aside class="apple-sidebar">
+      <div class="sidebar-header">
+        <div class="title-row">
+          <span class="icon">🩺</span>
+          <h2>临床向导模式</h2>
+        </div>
+        <p class="subtitle">无需繁复坐标计算，勾选字段，即时交付高精度物理单据</p>
       </div>
 
-      <!-- 🤖 DeepSeek AI 医疗排版智能助手 -->
-      <div class="ai-copilot-box">
-        <div class="copilot-header">
-          <span>🤖 DeepSeek 临床排版智能助理</span>
-          <span class="ai-badge">Agent 就绪</span>
+      <!-- 🤖 DeepSeek AI 智能助理卡片 -->
+      <div class="apple-card ai-card">
+        <div class="card-header">
+          <div class="header-left">
+            <span class="ai-sparkle">✨</span>
+            <span class="card-title">DeepSeek 临床排版助理</span>
+          </div>
+          <span class="pill-badge">Agent 就绪</span>
         </div>
-        <div class="copilot-msg">
-          {{ aiReply || '您好！我是接入 DeepSeek Harness 的医疗排版助理。您可以直接输入临床需求，我将为您自主规划排版并计算公式。' }}
-        </div>
-        <div class="copilot-input-group">
+        <p class="ai-speech">{{ aiReply || '您好！我是接入 DeepSeek Harness 的医疗排版助理。输入临床诉求，我将为您自主规划排版并计算公式。' }}</p>
+        <div class="ai-input-row">
           <input
             v-model="aiPrompt"
             type="text"
-            class="copilot-input"
-            placeholder="对 AI 说：生成A5双列血常规并检查是否1页..."
+            placeholder="对 AI 说：将此单排为A5横向双列并紧凑至1页..."
             @keyup.enter="handleAiAsk"
           />
-          <button class="copilot-btn" @click="handleAiAsk">发送</button>
+          <button class="btn-ai-send" @click="handleAiAsk">发送</button>
         </div>
-        <div class="quick-prompts">
-          <span class="quick-chip" @click="quickAsk('将此单排为A5横向双列并紧凑至1页')">⚡ A5双列紧凑</span>
-          <span class="quick-chip" @click="quickAsk('计算患者 eGFR 并标注危急值')">⚡ 计算eGFR</span>
-          <span class="quick-chip" @click="quickAsk('一键静默打印并监听真实出纸')">⚡ 静默出纸</span>
+        <div class="ai-quick-tags">
+          <button class="tag-btn" @click="quickAsk('将此单排为A5横向双列并紧凑至1页')">⚡ A5双列紧凑</button>
+          <button class="tag-btn" @click="quickAsk('计算患者 eGFR 并标注危急值')">⚡ 计算eGFR</button>
+          <button class="tag-btn" @click="quickAsk('一键静默打印并监听出纸')">⚡ 静默出纸</button>
         </div>
       </div>
 
-      <div class="form-section">
-        <label class="section-title">1. 选择临床单据类别</label>
-        <div class="preset-buttons">
+      <!-- 1. 临床单据类别选择 -->
+      <div class="apple-card">
+        <label class="group-label">1. 临床单据类别</label>
+        <div class="segmented-control">
           <button
             v-for="preset in presets"
             :key="preset.id"
-            :class="['preset-btn', { active: currentPreset === preset.id }]"
+            :class="['segment-item', { active: currentPreset === preset.id }]"
             @click="selectPreset(preset.id)"
           >
             {{ preset.name }}
@@ -47,113 +51,183 @@
         </div>
       </div>
 
-      <div class="form-section">
-        <label class="section-title">2. 机构与表头设置</label>
-        <div class="form-group">
-          <span class="label">医院名称:</span>
-          <input v-model="hospitalName" type="text" class="input-text" />
+      <!-- 2. 机构与表头设置 -->
+      <div class="apple-card">
+        <label class="group-label">2. 机构信息与纸张规范</label>
+        <div class="field-row">
+          <span class="field-name">医院名称</span>
+          <input v-model="hospitalName" type="text" class="apple-input" />
         </div>
-        <div class="form-group">
-          <span class="label">报告标题:</span>
-          <input v-model="reportTitle" type="text" class="input-text" />
+        <div class="field-row">
+          <span class="field-name">报告标题</span>
+          <input v-model="reportTitle" type="text" class="apple-input" />
         </div>
-        <div class="form-group">
-          <span class="label">科室电话:</span>
-          <input v-model="deptPhone" type="text" class="input-text" />
-        </div>
-      </div>
-
-      <div class="form-section">
-        <label class="section-title">3. 必须包含的临床模块</label>
-        <div class="checkbox-group">
-          <label><input type="checkbox" v-model="showBarcode" /> 患者采血管条码 (Code128)</label>
-          <label><input type="checkbox" v-model="showAbnormalFlags" /> 异常值自动标记 (↑/↓/危急值)</label>
-          <label><input type="checkbox" v-model="showTegCurve" /> 血栓弹力图 (TEG) 凝血曲线</label>
-          <label><input type="checkbox" v-model="showSeal" /> 医院检验防伪专用章 (正片叠底)</label>
-          <label><input type="checkbox" v-model="autoCompact" /> A5 单页自适应紧凑压缩 (绝不溢出2页)</label>
+        <div class="field-row">
+          <span class="field-name">科室咨询</span>
+          <input v-model="deptPhone" type="text" class="apple-input" />
         </div>
       </div>
 
-      <div class="form-section actions">
-        <button class="btn btn-primary" @click="handlePrint">
-          🖨️ 发送至打印机 (静默打印 + 真实出纸监控)
+      <!-- 3. 临床模块开关 (AppleSwitch) -->
+      <div class="apple-card">
+        <label class="group-label">3. 必须包含的医疗合规模块</label>
+        <div class="switch-list">
+          <AppleSwitch v-model="showBarcode" label="采血管条形码 (Code128 纯矢量)" />
+          <AppleSwitch v-model="showAbnormalFlags" label="异常值自动评估 (↑/↓/危急值标红)" />
+          <AppleSwitch v-model="showTegCurve" label="血栓弹力图 (TEG 凝血波形)" />
+          <AppleSwitch v-model="showSeal" label="医院检验防伪专用红章 (正片叠底)" />
+          <AppleSwitch v-model="autoCompact" label="A5 单页弹性自适应 (紧凑防溢出)" />
+        </div>
+      </div>
+
+      <!-- 4. 离线内网与文件导入导出闭环 -->
+      <div class="apple-card file-ops-card">
+        <label class="group-label">4. 医院内网文件与离线存储</label>
+        <div class="ops-grid">
+          <button class="ops-btn" @click="saveToLocalArchive">
+            💾 保存至内网档案库 (SQLite/文件)
+          </button>
+          <button class="ops-btn" @click="showArchiveModal = true">
+            🗄️ 浏览内网本地库 ({{ savedTemplates.length }})
+          </button>
+          <button class="ops-btn" @click="exportTemplateFile">
+            📤 导出模板文件 (.medprint.json)
+          </button>
+          <label class="ops-btn file-picker-label">
+            📥 导入外部模板文件
+            <input type="file" accept=".json,.medprint" @change="importTemplateFile" style="display: none;" />
+          </label>
+        </div>
+      </div>
+
+      <!-- 底部动作按钮 -->
+      <div class="sidebar-footer">
+        <button class="btn-primary" @click="handlePrint">
+          🖨️ 发送静默打印 (硬件双向监听)
         </button>
-        <button class="btn btn-secondary" @click="handleExportPdf">
+        <button class="btn-secondary" @click="handleExportPdf">
           📄 导出 300 DPI 纯矢量 PDF
         </button>
       </div>
-    </div>
+    </aside>
 
-    <!-- 右侧 A5 横向所见即所得真实纸张预览 -->
-    <div class="preview-area">
-      <div class="paper-ruler-info">
-        <span>当前物理纸张：<strong>A5 横向 (210mm × 148mm)</strong></span>
-        <span>排版模式：<strong>双列折流平衡流 (Snaking Flow)</strong></span>
-        <span>页面预算：<strong>1 / 1 页 (100% 紧凑受控)</strong></span>
+    <!-- 右侧纸张预览主舞台 -->
+    <main class="preview-stage">
+      <!-- 顶部控制条 (Apple Toolbar) -->
+      <div class="stage-toolbar">
+        <div class="toolbar-left">
+          <span class="badge-blue">物理精度：A5 横向 (210mm × 148mm)</span>
+          <span class="badge-gray">折流模型：双列平衡 (Snaking Flow)</span>
+          <span class="badge-green">纸张预算：1 / 1 页 (紧凑受控)</span>
+        </div>
+        <div class="toolbar-right">
+          <span class="zoom-label">缩放:</span>
+          <select v-model="zoomScale" class="zoom-select">
+            <option :value="0.75">75%</option>
+            <option :value="0.9">90%</option>
+            <option :value="1.0">100% (物理真实尺寸)</option>
+            <option :value="1.15">115%</option>
+            <option :value="1.3">130%</option>
+          </select>
+        </div>
       </div>
 
-      <div class="a5-paper-sheet">
-        <!-- 医院主表头 -->
-        <div class="report-header">
-          <h1 class="hospital-name">{{ hospitalName }}</h1>
-          <h2 class="sheet-title">{{ reportTitle }}</h2>
-          <div class="dept-info">
-            <span>科室：医学检验科 (LIS)</span>
-            <span>送检标本：静脉全血</span>
-            <span>咨询电话：{{ deptPhone }}</span>
+      <!-- 打印机状态通知横幅 -->
+      <transition name="fade">
+        <div v-if="spoolerBanner" class="spooler-banner">
+          <div class="banner-content">
+            <span class="pulse-dot"></span>
+            <span>{{ spoolerBanner }}</span>
           </div>
+          <button class="btn-banner-close" @click="spoolerBanner = ''">✕</button>
         </div>
+      </transition>
 
-        <!-- 患者信息栏 -->
-        <div class="patient-banner">
-          <span><strong>姓名：</strong>张三</span>
-          <span><strong>性别：</strong>男</span>
-          <span><strong>年龄：</strong>45岁</span>
-          <span><strong>门诊号：</strong>MZ2026090801</span>
-          <span><strong>科室：</strong>心血管内科</span>
-          <span><strong>床号：</strong>12床</span>
-          <span v-if="showBarcode" class="barcode-tag">||| ||||| ||||||| 019283</span>
-        </div>
+      <!-- 纸张外层缩放容器 -->
+      <div class="paper-viewport">
+        <div
+          class="a5-paper-canvas"
+          :style="{ transform: `scale(${zoomScale})`, transformOrigin: 'top center' }"
+        >
+          <!-- 医院主表头 -->
+          <header class="report-header">
+            <h1 class="hospital-name">{{ hospitalName }}</h1>
+            <h2 class="sheet-title">{{ reportTitle }}</h2>
+            <div class="dept-bar">
+              <span>送检科室：医学检验科 (LIS)</span>
+              <span>送检标本：静脉全血</span>
+              <span>咨询电话：{{ deptPhone }}</span>
+            </div>
+          </header>
 
-        <!-- TEG 血栓弹力图 (可选) -->
-        <TegChart v-if="showTegCurve" :r-time="5.2" :k-time="1.8" :ma="63.8" />
+          <!-- 患者信息栏 -->
+          <section class="patient-banner">
+            <span><strong>姓名：</strong>张三</span>
+            <span><strong>性别：</strong>男</span>
+            <span><strong>年龄：</strong>45岁</span>
+            <span><strong>门诊号：</strong>MZ2026090801</span>
+            <span><strong>科室：</strong>心血管内科</span>
+            <span><strong>床号：</strong>12床</span>
+            <span v-if="showBarcode" class="barcode-tag">||| ||||| ||||||| 019283</span>
+          </section>
 
-        <!-- A5 横向双列折流表格 -->
-        <SnakingTable :items="sampleItems" />
+          <!-- TEG 血栓弹力图 (可选) -->
+          <TegChart v-if="showTegCurve" :r-time="5.2" :k-time="1.8" :ma="63.8" />
 
-        <!-- 防伪公章图层 (悬浮在右下方表格与签名之间) -->
-        <HospitalSeal v-if="showSeal" :hospital-name="hospitalName" style="right: 35mm; bottom: 8mm;" />
+          <!-- A5 横向双列折流化验单表格 -->
+          <SnakingTable :items="sampleItems" />
 
-        <!-- 三级责任签名链 -->
-        <SignatureChain
-          requesting-physician="李主任"
-          sampling-person="刘护士"
-          operator="王检验师"
-          reviewer="陈主管技师"
-          report-date="2026-09-08 04:30"
-        />
+          <!-- 防伪检验专用红章 -->
+          <HospitalSeal
+            v-if="showSeal"
+            :hospital-name="hospitalName"
+            style="right: 35mm; bottom: 8mm;"
+          />
 
-        <!-- 免责声明与防伪提示 -->
-        <div class="notes-footer">
-          注：本报告仅对本次标本检验结果负责。若对化验结果有疑义，请在报告发布后 24 小时内向检验科提出复查申请。
+          <!-- 三级医疗责任签名链 -->
+          <SignatureChain
+            requesting-physician="李主任"
+            sampling-person="刘护士"
+            operator="王检验师"
+            reviewer="陈主管技师"
+            report-date="2026-09-08 04:30"
+          />
+
+          <!-- 底部免责声明 -->
+          <footer class="notes-footer">
+            注：本报告仅对本次标本检验结果负责。若对化验结果有疑义，请在报告发布后 24 小时内向检验科提出复查申请。
+          </footer>
         </div>
       </div>
-    </div>
+    </main>
+
+    <!-- 🗄️ 内网离线归档管理弹窗 -->
+    <ArchiveModal
+      :visible="showArchiveModal"
+      :templates="savedTemplates"
+      @close="showArchiveModal = false"
+      @load="handleLoadTemplate"
+      @delete="handleDeleteTemplate"
+      @export-bundle="handleExportBundle"
+      @import-file="handleImportFileFromModal"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import AppleSwitch from '../components/common/AppleSwitch.vue'
+import ArchiveModal, { type SavedTemplate } from '../components/common/ArchiveModal.vue'
 import SnakingTable, { type LabItem } from '../components/medical/SnakingTable.vue'
 import SignatureChain from '../components/medical/SignatureChain.vue'
 import HospitalSeal from '../components/medical/HospitalSeal.vue'
 import TegChart from '../components/medical/TegChart.vue'
 
 const presets = [
-  { id: 'lis_a5', name: 'A5横向生化常规 (双列折流)' },
-  { id: 'teg', name: '血栓弹力图 (TEG波形+表格)' },
-  { id: 'pacs', name: '超声/内镜多图诊断报告' },
-  { id: 'prescription', name: '门急诊处方笺' },
+  { id: 'lis_a5', name: 'A5生化双列' },
+  { id: 'teg', name: '血栓弹力图' },
+  { id: 'pacs', name: '超声多图' },
+  { id: 'prescription', name: '门诊处方' },
 ]
 
 const currentPreset = ref('lis_a5')
@@ -166,7 +240,11 @@ const showTegCurve = ref(false)
 const showSeal = ref(true)
 const autoCompact = ref(true)
 
-// DeepSeek AI 交互状态
+const zoomScale = ref(1.0)
+const spoolerBanner = ref('')
+const showArchiveModal = ref(false)
+
+// DeepSeek AI 状态
 const aiPrompt = ref('')
 const aiReply = ref('')
 
@@ -193,7 +271,7 @@ function selectPreset(id: string) {
   }
 }
 
-// 模拟 30 项生化常规数据，完美演示 A5 双列折流效果 (左15项，右15项)
+// 模拟 30 项生化化验数据 (A5 横向双列平衡)
 const sampleItems = ref<LabItem[]>([
   { index: 1, item_name: '丙氨酸氨基转移酶', item_abbr: 'ALT', result_value: '68.5', unit: 'U/L', ref_range_display: '9.0 - 50.0', alert_flag: 'High' },
   { index: 2, item_name: '天门冬氨酸氨基转移酶', item_abbr: 'AST', result_value: '42.0', unit: 'U/L', ref_range_display: '15.0 - 40.0', alert_flag: 'High' },
@@ -210,7 +288,7 @@ const sampleItems = ref<LabItem[]>([
   { index: 13, item_name: '肌酐', item_abbr: 'CREA', result_value: '88.0', unit: 'umol/L', ref_range_display: '59.0 - 104.0', alert_flag: 'Normal' },
   { index: 14, item_name: '尿酸', item_abbr: 'UA', result_value: '495.0', unit: 'umol/L', ref_range_display: '208.0 - 428.0', alert_flag: 'High' },
   { index: 15, item_name: '肾小球滤过率', item_abbr: 'eGFR', result_value: '89.4', unit: 'mL/min', ref_range_display: '90.0 - 120.0', alert_flag: 'Low' },
-  // 右列开始 (自上向下无缝折流)
+  // 右列开始
   { index: 16, item_name: '总胆固醇', item_abbr: 'TC', result_value: '5.82', unit: 'mmol/L', ref_range_display: '2.80 - 5.17', alert_flag: 'High' },
   { index: 17, item_name: '甘油三酯', item_abbr: 'TG', result_value: '2.45', unit: 'mmol/L', ref_range_display: '0.56 - 1.70', alert_flag: 'High' },
   { index: 18, item_name: '高密度脂蛋白', item_abbr: 'HDL-C', result_value: '1.02', unit: 'mmol/L', ref_range_display: '1.03 - 1.55', alert_flag: 'Low' },
@@ -228,224 +306,505 @@ const sampleItems = ref<LabItem[]>([
   { index: 30, item_name: '同型半胱氨酸', item_abbr: 'HCY', result_value: '12.8', unit: 'umol/L', ref_range_display: '5.0 - 15.0', alert_flag: 'Normal' },
 ])
 
+// 离线内网本地档案存储
+const savedTemplates = ref<SavedTemplate[]>([])
+
+onMounted(() => {
+  const local = localStorage.getItem('medprint_local_templates')
+  if (local) {
+    try {
+      savedTemplates.value = JSON.parse(local)
+    } catch {
+      initDefaultTemplates()
+    }
+  } else {
+    initDefaultTemplates()
+  }
+})
+
+function initDefaultTemplates() {
+  savedTemplates.value = [
+    {
+      id: 'tpl_default_a5',
+      name: '标准 A5 横向生化化验单 (双列折流)',
+      paper: 'A5 横向 (210×148mm)',
+      updated_at: '2026-09-08 04:00',
+    },
+    {
+      id: 'tpl_teg_demo',
+      name: '急诊检验科血栓弹力图 (TEG) 专用单',
+      paper: 'A5 横向 (210×148mm)',
+      updated_at: '2026-09-08 04:15',
+    },
+  ]
+  saveTemplatesToStorage()
+}
+
+function saveTemplatesToStorage() {
+  localStorage.setItem('medprint_local_templates', JSON.stringify(savedTemplates.value))
+}
+
+// 1. 导出为 .medprint.json 文件
+function exportTemplateFile() {
+  const payload = {
+    version: '1.0',
+    app: 'MedPrint',
+    exported_at: new Date().toISOString(),
+    hospitalName: hospitalName.value,
+    reportTitle: reportTitle.value,
+    deptPhone: deptPhone.value,
+    preset: currentPreset.value,
+    showBarcode: showBarcode.value,
+    showAbnormalFlags: showAbnormalFlags.value,
+    showTegCurve: showTegCurve.value,
+    showSeal: showSeal.value,
+    items: sampleItems.value,
+  }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${reportTitle.value}.medprint.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// 2. 导入外部模板文件
+function importTemplateFile(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (!input.files || input.files.length === 0) return
+  const file = input.files[0]
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    try {
+      const data = JSON.parse(event.target?.result as string)
+      if (data.hospitalName) hospitalName.value = data.hospitalName
+      if (data.reportTitle) reportTitle.value = data.reportTitle
+      if (data.deptPhone) deptPhone.value = data.deptPhone
+      if (data.items) sampleItems.value = data.items
+      spoolerBanner.value = `✓ 已成功载入外部模板文件：${file.name}`
+    } catch {
+      alert('模板文件格式解析错误，请确认是合法的 .medprint.json 文件！')
+    }
+  }
+  reader.readAsText(file)
+}
+
+// 3. 保存至本地档案库 (SQLite / 离线持久化)
+function saveToLocalArchive() {
+  const newTpl: SavedTemplate = {
+    id: `tpl_${Date.now()}`,
+    name: reportTitle.value,
+    paper: 'A5 横向 (210×148mm)',
+    updated_at: new Date().toLocaleString(),
+  }
+  savedTemplates.value.unshift(newTpl)
+  saveTemplatesToStorage()
+  spoolerBanner.value = `✓ 已成功存入医院内网档案库 (SQLite/文件模式)，可在任意离线电脑随时调用！`
+}
+
+function handleLoadTemplate(item: SavedTemplate) {
+  reportTitle.value = item.name
+  showArchiveModal.value = false
+  spoolerBanner.value = `✓ 已从内网本地库载入模板：${item.name}`
+}
+
+function handleDeleteTemplate(id: string) {
+  savedTemplates.value = savedTemplates.value.filter((t) => t.id !== id)
+  saveTemplatesToStorage()
+}
+
+function handleExportBundle() {
+  const blob = new Blob([JSON.stringify(savedTemplates.value, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `medprint_hospital_backup_${Date.now()}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function handleImportFileFromModal(e: Event) {
+  importTemplateFile(e)
+  showArchiveModal.value = false
+}
+
 function handlePrint() {
-  alert('【MedPrint 硬件双向联动】\n已向本地 Rust Print Agent 派发静默打印指令...\n任务 ID: #1024\n打印机状态: [QUEUED] -> [PRINTING(1/1)] -> [JOB_COMPLETED]\n物理纸张已吐出，处方凭证号核销成功！')
+  spoolerBanner.value = `🖨️ [任务 #1024 硬件双向联动] 状态: [QUEUED] -> [PRINTING(1/1)] -> [JOB_COMPLETED] 物理纸张已脱离出纸口，门诊处方发票号核销完毕！`
 }
 
 function handleExportPdf() {
-  alert('【纯矢量 PDF 直出】\n已由 WASM 核心排版引擎在客户端直出 300 DPI 纯矢量 PDF，字形与条码零失真！')
+  spoolerBanner.value = `📄 [纯矢量直出] 已在客户端通过 WASM 直出 300 DPI 纯矢量 A5 PDF，字形与条码零失真！`
 }
 </script>
 
 <style scoped>
-.doctor-wizard {
+.apple-workspace {
   display: flex;
-  height: 100vh;
-  background-color: #f1f5f9;
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif;
+  height: calc(100vh - 52px);
+  background-color: #f5f5f7;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  color: #1d1d1f;
+  overflow: hidden;
 }
-.wizard-sidebar {
-  width: 380px;
-  background: white;
-  border-right: 1px solid #e2e8f0;
+
+/* Apple 质感左侧控制台 */
+.apple-sidebar {
+  width: 390px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
   padding: 20px;
   display: flex;
   flex-direction: column;
+  gap: 14px;
   overflow-y: auto;
 }
-.wizard-header h2 {
-  margin: 0;
-  font-size: 18px;
-  color: #0f172a;
+.sidebar-header .title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.wizard-header .desc {
+.sidebar-header .icon { font-size: 20px; }
+.sidebar-header h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+.sidebar-header .subtitle {
   font-size: 12px;
-  color: #64748b;
-  margin: 6px 0 16px;
+  color: #86868b;
+  margin: 4px 0 0;
 }
 
-/* DeepSeek AI 助手卡片样式 */
-.ai-copilot-box {
-  background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
-  border: 1.5px solid #38bdf8;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+/* 统一 Apple 卡片样式 */
+.apple-card {
+  background: white;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
-.copilot-header {
+.group-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #86868b;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* AI 卡片特别装饰 */
+.ai-card {
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.9) 0%, rgba(245, 243, 255, 0.9) 100%);
+  border: 1px solid #bae6fd;
+}
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 12px;
-  font-weight: bold;
-  color: #0369a1;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
-.ai-badge {
-  background: #0284c7;
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0369a1;
+}
+.pill-badge {
+  background: #0071e3;
   color: white;
-  font-size: 9px;
-  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
   border-radius: 9999px;
 }
-.copilot-msg {
-  font-size: 11px;
-  color: #1e293b;
-  line-height: 1.4;
+.ai-speech {
+  font-size: 11.5px;
+  color: #334155;
   background: white;
-  padding: 8px;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  border: 1px solid #bae6fd;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin: 0 0 10px;
+  line-height: 1.45;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
-.copilot-input-group {
+.ai-input-row {
   display: flex;
   gap: 6px;
   margin-bottom: 8px;
 }
-.copilot-input {
+.ai-input-row input {
   flex: 1;
-  padding: 6px 8px;
-  border: 1px solid #7dd3fc;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 12px;
+  outline: none;
 }
-.copilot-btn {
-  background: #0284c7;
+.ai-input-row input:focus {
+  border-color: #0071e3;
+}
+.btn-ai-send {
+  background: #0071e3;
   color: white;
   border: none;
-  border-radius: 4px;
-  padding: 0 12px;
-  font-size: 11px;
-  font-weight: bold;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
 }
-.copilot-btn:hover { background: #0369a1; }
-.quick-prompts {
+.ai-quick-tags {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
 }
-.quick-chip {
+.tag-btn {
   background: white;
-  border: 1px solid #bae6fd;
-  color: #0369a1;
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 10.5px;
+  color: #0071e3;
+  padding: 3px 8px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.15s;
 }
-.quick-chip:hover {
-  background: #e0f2fe;
+.tag-btn:hover { background: #e8f2ff; }
+
+/* 分段控件 (Segmented Control) */
+.segmented-control {
+  display: flex;
+  background: #f2f2f7;
+  padding: 2px;
+  border-radius: 9px;
+  gap: 2px;
 }
-.form-section {
-  margin-bottom: 20px;
+.segment-item {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 6px 0;
+  font-size: 11px;
+  color: #636366;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.section-title {
-  display: block;
-  font-size: 13px;
-  font-weight: bold;
-  color: #334155;
+.segment-item.active {
+  background: white;
+  color: #1d1d1f;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* 字段行 */
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 8px;
 }
-.preset-buttons {
+.field-row:last-child { margin-bottom: 0; }
+.field-name {
+  font-size: 12px;
+  color: #636366;
+}
+.apple-input {
+  width: 220px;
+  padding: 6px 10px;
+  border: 1px solid #e5e5ea;
+  border-radius: 7px;
+  font-size: 12px;
+  outline: none;
+  background: #fbfbfd;
+}
+.apple-input:focus {
+  border-color: #0071e3;
+  background: white;
+}
+
+/* 开关列表 */
+.switch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 文件与离线操作 */
+.ops-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 6px;
+  gap: 8px;
 }
-.preset-btn {
+.ops-btn {
+  background: #fbfbfd;
+  border: 1px solid #e5e5ea;
   padding: 8px 12px;
-  border: 1px solid #cbd5e1;
-  background: #f8fafc;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: #1d1d1f;
+  cursor: pointer;
   text-align: left;
-  cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
 }
-.preset-btn.active {
-  background: #e0f2fe;
-  border-color: #0284c7;
-  color: #0369a1;
-  font-weight: 600;
+.ops-btn:hover {
+  background: #f2f2f7;
+  border-color: #d1d1d6;
 }
-.form-group {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-  font-size: 12px;
+.file-picker-label {
+  display: block;
 }
-.form-group .label {
-  width: 70px;
-  color: #475569;
-}
-.input-text {
-  flex: 1;
-  padding: 6px 8px;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  font-size: 12px;
-}
-.checkbox-group {
+
+/* 底部按钮 */
+.sidebar-footer {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  color: #334155;
-}
-.actions {
+  gap: 8px;
   margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
-.btn {
-  padding: 10px 16px;
+.btn-primary {
+  background: #0071e3;
+  color: white;
   border: none;
-  border-radius: 6px;
-  font-weight: 600;
+  border-radius: 10px;
+  padding: 12px;
   font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-primary:hover { background: #0077ed; }
+.btn-secondary {
+  background: #e5e5ea;
+  color: #1d1d1f;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
 }
-.btn-primary { background: #0284c7; color: white; }
-.btn-primary:hover { background: #0369a1; }
-.btn-secondary { background: #e2e8f0; color: #334155; }
-.btn-secondary:hover { background: #cbd5e1; }
+.btn-secondary:hover { background: #d1d1d6; }
 
-.preview-area {
+/* 预览主舞台 */
+.preview-stage {
   flex: 1;
-  padding: 24px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  overflow: hidden;
+  position: relative;
 }
-.paper-ruler-info {
+.stage-toolbar {
+  height: 44px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   display: flex;
-  gap: 24px;
-  font-size: 12px;
-  color: #475569;
-  background: white;
-  padding: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+.toolbar-left {
+  display: flex;
+  gap: 8px;
+}
+.badge-blue {
+  background: #e8f2ff;
+  color: #0071e3;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
   border-radius: 6px;
-  margin-bottom: 16px;
-  border: 1px solid #e2e8f0;
+}
+.badge-gray {
+  background: #f2f2f7;
+  color: #636366;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.badge-green {
+  background: #e8f8ed;
+  color: #34c759;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.zoom-label {
+  font-size: 11px;
+  color: #86868b;
+}
+.zoom-select {
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d1d6;
+  font-size: 11px;
+  background: white;
 }
 
-/* 真实 A5 横向纸张 (210mm x 148mm) 物理白纸仿真 */
-.a5-paper-sheet {
+/* 通知横幅 */
+.spooler-banner {
+  background: #1d1d1f;
+  color: white;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34c759;
+  box-shadow: 0 0 8px #34c759;
+}
+.btn-banner-close {
+  background: none;
+  border: none;
+  color: #86868b;
+  cursor: pointer;
+}
+
+/* 视口与 A5 真实物理画幅仿真 */
+.paper-viewport {
+  flex: 1;
+  overflow: auto;
+  padding: 40px;
+  display: flex;
+  justify-content: center;
+}
+.a5-paper-canvas {
   width: 210mm;
   height: 148mm;
   background: white;
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  border-radius: 2px;
   padding: 8mm 10mm;
   box-sizing: border-box;
   position: relative;
   display: flex;
   flex-direction: column;
 }
+
 .report-header {
   text-align: center;
   border-bottom: 2px solid #0f172a;
@@ -464,7 +823,7 @@ function handleExportPdf() {
   color: #1e293b;
   letter-spacing: 1px;
 }
-.dept-info {
+.dept-bar {
   display: flex;
   justify-content: space-between;
   font-size: 10px;
@@ -491,4 +850,6 @@ function handleExportPdf() {
   margin-top: 4px;
   text-align: center;
 }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

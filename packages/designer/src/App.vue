@@ -1,43 +1,64 @@
 <template>
-  <div class="app-root">
-    <!-- 顶部极简导航：临床双轨制切换 -->
-    <header class="app-header">
-      <div class="brand">
-        <span class="logo">🏥</span>
-        <span class="title">MedPrint 医疗报告单设计器</span>
-        <span class="version-tag">v0.1.0</span>
+  <div class="apple-app-shell">
+    <!-- macOS 质感顶部毛玻璃导航条 -->
+    <header class="apple-nav-header">
+      <div class="header-section left">
+        <div class="macos-traffic-lights">
+          <span class="light red"></span>
+          <span class="light yellow"></span>
+          <span class="light green"></span>
+        </div>
+        <div class="brand">
+          <span class="brand-icon">🏥</span>
+          <span class="brand-title">MedPrint Studio</span>
+          <span class="brand-badge">v0.1.0</span>
+        </div>
       </div>
-      <div class="mode-tabs">
-        <button
-          :class="['tab-btn', { active: currentView === 'wizard' }]"
-          @click="currentView = 'wizard'"
-        >
-          🩺 医生快速向导模式 (零门槛)
-        </button>
-        <button
-          :class="['tab-btn', { active: currentView === 'canvas' }]"
-          @click="currentView = 'canvas'"
-        >
-          🛠️ 信息科极客画布模式 (毫米级自由拖拽)
-        </button>
+
+      <div class="header-section center">
+        <div class="apple-segmented-pill">
+          <button
+            :class="['pill-item', { active: currentView === 'wizard' }]"
+            @click="currentView = 'wizard'"
+          >
+            🩺 医生快速向导
+          </button>
+          <button
+            :class="['pill-item', { active: currentView === 'canvas' }]"
+            @click="currentView = 'canvas'"
+          >
+            🛠️ 极客自由画布
+          </button>
+        </div>
       </div>
-      <div class="header-right">
-        <span class="status-indicator online">● 本地 Agent 已联机 (Spooler 就绪)</span>
+
+      <div class="header-section right">
+        <div class="agent-status-tag">
+          <span class="status-dot"></span>
+          <span>Agent 本地服务就绪 (Spooler 联机)</span>
+        </div>
       </div>
     </header>
 
-    <!-- 主工作区 -->
-    <main class="app-main">
+    <!-- 工作台视口 -->
+    <div class="apple-main-viewport">
       <DoctorWizard v-if="currentView === 'wizard'" />
-      <div v-else class="canvas-placeholder">
-        <div class="pro-panel">
-          <h2>🛠️ 信息科极客自由画布</h2>
-          <p>支持微米级坐标吸附、表达式脚本编写、印章正片叠底与自定义驱动指令 (ESC/P2 针式连续纸走纸穿孔线设置)。</p>
-          <div class="ruler-banner">当前画布基准单位：<strong>绝对物理毫米 (mm)</strong> | 坐标：(0.00mm, 0.00mm)</div>
-          <button class="btn btn-switch" @click="currentView = 'wizard'">返回医生快速向导</button>
+      
+      <!-- 极客自由画布 -->
+      <div v-else class="pro-canvas-wrapper">
+        <div class="pro-canvas-card">
+          <div class="card-icon">📐</div>
+          <h2>信息科极客自由画布模式</h2>
+          <p class="card-desc">
+            支持绝对物理毫米（mm）坐标网格吸附、动态公式脚本编写、印章正片叠底透明度调节，以及爱普生 LQ-630K 针打连续折叠纸穿孔线设置。
+          </p>
+          <div class="info-pill">当前画布标尺单位：<strong>物理毫米 (mm)</strong> | 精度：0.01mm</div>
+          <button class="btn-return-wizard" @click="currentView = 'wizard'">
+            返回医生快速向导
+          </button>
         </div>
       </div>
-    </main>
+    </div>
   </div>
 </template>
 
@@ -49,99 +70,176 @@ const currentView = ref<'wizard' | 'canvas'>('wizard')
 </script>
 
 <style>
-* { box-sizing: border-box; }
-body { margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f5f5f7;
+  -webkit-font-smoothing: antialiased;
+}
 </style>
 
 <style scoped>
-.app-root {
+.apple-app-shell {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
 }
-.app-header {
-  height: 48px;
-  background: #0f172a;
-  color: white;
+
+/* macOS 风格顶部毛玻璃导航条 */
+.apple-nav-header {
+  height: 52px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 20px;
+  position: relative;
+  z-index: 50;
 }
+.header-section {
+  display: flex;
+  align-items: center;
+}
+.macos-traffic-lights {
+  display: flex;
+  gap: 7px;
+  margin-right: 16px;
+}
+.light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.light.red { background: #ff5f56; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }
+.light.yellow { background: #ffbd2e; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }
+.light.green { background: #27c93f; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }
+
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
-.logo { font-size: 20px; }
-.title { font-weight: 700; font-size: 15px; letter-spacing: 0.5px; }
-.version-tag {
-  background: #0284c7;
+.brand-icon { font-size: 18px; }
+.brand-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.3px;
+}
+.brand-badge {
+  background: #f2f2f7;
+  color: #86868b;
   font-size: 10px;
+  font-weight: 500;
   padding: 2px 6px;
   border-radius: 4px;
 }
-.mode-tabs {
+
+/* Apple 胶囊分段控制 */
+.apple-segmented-pill {
   display: flex;
-  gap: 8px;
+  background: #ebebeb;
+  padding: 3px;
+  border-radius: 9999px;
+  gap: 2px;
 }
-.tab-btn {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: #cbd5e1;
-  padding: 6px 14px;
-  border-radius: 6px;
+.pill-item {
+  background: transparent;
+  border: none;
+  padding: 5px 18px;
+  border-radius: 9999px;
   font-size: 12px;
+  font-weight: 500;
+  color: #636366;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.tab-btn.active {
-  background: #0284c7;
-  color: white;
-  border-color: #38bdf8;
+.pill-item.active {
+  background: white;
+  color: #1d1d1f;
   font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
-.header-right {
-  font-size: 12px;
+
+.agent-status-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #eafaf1;
+  color: #248a3d;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1px solid rgba(36, 138, 61, 0.2);
 }
-.status-indicator.online {
-  color: #4ade80;
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34c759;
+  box-shadow: 0 0 6px #34c759;
 }
-.app-main {
+
+.apple-main-viewport {
   flex: 1;
   overflow: hidden;
 }
-.canvas-placeholder {
+
+.pro-canvas-wrapper {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8fafc;
+  background: #f5f5f7;
 }
-.pro-panel {
+.pro-canvas-card {
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 40px;
-  max-width: 600px;
+  border-radius: 16px;
+  padding: 48px;
+  max-width: 580px;
   text-align: center;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
-.pro-panel h2 { color: #0284c7; margin-top: 0; }
-.ruler-banner {
-  background: #f1f5f9;
-  padding: 8px 16px;
-  border-radius: 6px;
-  margin: 16px 0;
+.card-icon { font-size: 40px; margin-bottom: 12px; }
+.pro-canvas-card h2 {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+.card-desc {
   font-size: 13px;
-  color: #334155;
+  color: #86868b;
+  line-height: 1.6;
+  margin: 0 0 20px;
 }
-.btn-switch {
-  background: #0284c7;
+.info-pill {
+  background: #f2f2f7;
+  color: #1d1d1f;
+  display: inline-block;
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  margin-bottom: 24px;
+}
+.btn-return-wizard {
+  background: #0071e3;
   color: white;
   border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 10px 24px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
 }
+.btn-return-wizard:hover { background: #0077ed; }
 </style>
