@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/medprint-core",
+    "crates/medprint-wasm",
+    "crates/medprint-agent",
+    "crates/medprint-server",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["MedPrint Contributors"]
+license = "Apache-2.0"
+repository = "https://github.com/medprint/medprint"
+homepage = "https://medprint.org"
+keywords = ["medical", "report", "designer", "print", "wasm"]
+categories = ["medical", "graphics", "gui"]
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+log = "0.4"
+env_logger = "0.11"
+tokio = { version = "1.38", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }

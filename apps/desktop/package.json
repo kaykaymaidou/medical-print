@@ -1,0 +1,12 @@
+{
+  "name": "@medprint/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MedPrint Standalone Cross-Platform Desktop App (Tauri 2.0 + Rust + Vue3)",
+  "scripts": {
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

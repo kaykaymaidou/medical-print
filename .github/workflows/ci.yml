@@ -1,0 +1,45 @@
+name: MedPrint CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  rust-check-and-test:
+    name: Rust Crates Check & Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Cargo Test Core & Server
+        run: |
+          cargo test -p medprint-core
+          cargo check -p medprint-server
+      - name: Check WASM Target
+        run: |
+          cargo check --target wasm32-unknown-unknown -p medprint-wasm
+
+  frontend-build:
+    name: Frontend Packages Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Type check & Build Designer
+        run: pnpm build:designer

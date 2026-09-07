@@ -1,0 +1,51 @@
+name: "🖨️ 打印机硬件与状态回调兼容性报告 (Printer Hardware Compatibility)"
+description: "反馈特定品牌/型号打印机在静默打印、缺纸/卡纸回调、双向状态监听中的实测结果"
+title: "[Hardware]: "
+labels: ["hardware", "printer-spooler"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        准确的硬件状态（物理缺纸、卡纸、完成吐纸）是医疗收费发票与处方防重印的核心。
+  - type: input
+    id: printer_model
+    attributes:
+      label: 打印机品牌与完整型号
+      placeholder: "例如：Epson LQ-630K II / HP LaserJet Pro M405dn / Zebra ZD888"
+    validations:
+      required: true
+  - type: dropdown
+    id: printer_type
+    attributes:
+      label: 打印机类型
+      options:
+        - "针式平推/连续穿孔纸打印机 (如爱普生/得实)"
+        - "激光/LED高速网络打印机 (如惠普/联想/理光)"
+        - "热敏条码/腕带标签机 (如斑马/新北洋)"
+    validations:
+      required: true
+  - type: dropdown
+    id: os_env
+    attributes:
+      label: 操作系统环境
+      options:
+        - "Windows 10 / 11 (64位)"
+        - "Windows 7 (32位/64位)"
+        - "统信 UOS (Linux x86_64 / LoongArch)"
+        - "银河麒麟 Kylin (Linux ARM64 / x86_64)"
+        - "macOS"
+    validations:
+      required: true
+  - type: checkboxes
+    id: status_test
+    attributes:
+      label: 实测功能状态
+      options:
+        - label: "静默打印成功启动并输出"
+        - label: "物理缺纸 (Paper Out) 准确被 Agent 捕获并回传"
+        - label: "卡纸 (Paper Jam) / 盖板打开准确被捕获"
+        - label: "物理完成出纸 (Job Complete) 准确回调（非单纯进入队列）"
+  - type: textarea
+    id: log_snippet
+    attributes:
+      label: Agent 运行日志或 Spooler 调试输出

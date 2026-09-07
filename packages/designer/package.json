@@ -1,0 +1,22 @@
+{
+  "name": "@medprint/designer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vue 3 Visual Medical Report Designer for MedPrint",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.4.21",
+    "pinia": "^2.1.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.0",
+    "vue-tsc": "^2.0.7"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MedPrint",
+  "version": "0.1.0",
+  "identifier": "com.medprint.desktop",
+  "build": {
+    "frontendDist": "../../../packages/designer/dist",
+    "devUrl": "http://localhost:3000"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "MedPrint 医疗报告单设计器",
+        "width": 1280,
+        "height": 840,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ]
+  }
+}

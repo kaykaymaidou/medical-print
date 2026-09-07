@@ -1,0 +1,41 @@
+name: "🇨🇳 信创国产化系统适配反馈 (Xinchuang OS & CPU Feedback)"
+description: "反馈在统信 UOS、银河麒麟、中科方德等国产操作系统及龙芯、飞腾、鲲鹏硬件上的运行表现"
+title: "[Xinchuang]: "
+labels: ["xinchuang", "linux"]
+body:
+  - type: dropdown
+    id: linux_distro
+    attributes:
+      label: 国产操作系统发行版
+      options:
+        - "统信 UOS 桌面端 (V20/1060)"
+        - "银河麒麟 Kylin 桌面端 (V10 SP1)"
+        - "中科方德 (NFS Desktop)"
+        - "openEuler / KylinSec"
+        - "其他国产 Linux"
+    validations:
+      required: true
+  - type: dropdown
+    id: cpu_arch
+    attributes:
+      label: CPU 架构
+      options:
+        - "LoongArch64 (龙芯 3A5000/3A6000)"
+        - "AArch64 (鲲鹏 / 飞腾 / 麒麟)"
+        - "x86_64 (海光 / 兆芯 / Intel / AMD)"
+        - "MIPS64 (老款龙芯)"
+    validations:
+      required: true
+  - type: checkboxes
+    id: modules_tested
+    attributes:
+      label: 已测试通过的模块
+      options:
+        - label: "WASM 在国产浏览器 (奇安信/红莲花/360安全浏览器) 中正常运行"
+        - label: "medprint-agent 原生守护进程无报错启动"
+        - label: "CUPS 打印机双向状态通信正常"
+        - label: "Tauri 桌面客户端界面与打印均正常"
+  - type: textarea
+    id: xinchuang_details
+    attributes:
+      label: 详细环境信息与调试日志

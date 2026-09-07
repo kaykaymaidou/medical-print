@@ -1,0 +1,16 @@
+{
+  "name": "medprint-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Next-Gen Medical Report Designer & Cross-Platform Printing Engine (Rust + WASM + Vue3)",
+  "scripts": {
+    "dev:designer": "pnpm --filter @medprint/designer dev",
+    "build:designer": "pnpm --filter @medprint/designer build",
+    "build:extension": "pnpm --filter @medprint/extension build",
+    "build:wasm": "wasm-pack build crates/medprint-wasm --target web --out-dir ../../packages/designer/src/wasm"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  },
+  "packageManager": "pnpm@10.12.1"
+}

@@ -1,0 +1,18 @@
+[package]
+name = "medprint-server"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "medprint-server"
+path = "src/main.rs"
+
+[dependencies]
+medprint-core = { path = "../medprint-core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }

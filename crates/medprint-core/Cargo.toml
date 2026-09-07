@@ -1,0 +1,13 @@
+[package]
+name = "medprint-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+chrono = { workspace = true, default-features = false, features = ["serde", "alloc"] }

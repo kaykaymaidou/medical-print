@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "MedPrint 医疗打印助手与模板设计器",
+  "version": "0.1.0",
+  "description": "专为医院信息化打造：Native Messaging 静默直连硬件打印机，真实出纸回调，免本地端口与证书拦截",
+  "permissions": [
+    "nativeMessaging",
+    "storage",
+    "activeTab"
+  ],
+  "action": {
+    "default_title": "打开 MedPrint 医疗设计器"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

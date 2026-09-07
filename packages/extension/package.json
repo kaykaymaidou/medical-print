@@ -1,0 +1,13 @@
+{
+  "name": "@medprint/extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome/Edge Browser Extension for MedPrint - Zero Port Native Print Bridge & Template Authoring",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.263",
+    "typescript": "^5.4.5"
+  }
+}

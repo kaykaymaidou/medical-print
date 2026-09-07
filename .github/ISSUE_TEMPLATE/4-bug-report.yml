@@ -1,0 +1,37 @@
+name: "🐛 缺陷报告 (Bug Report)"
+description: "报告核心排版引擎、WASM 渲染、公式计算或设计器界面中的缺陷"
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 缺陷描述
+      description: "清晰扼要地描述遇到的问题。"
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: 受影响模块
+      options:
+        - "crates/medprint-core (核心排版/公式/PDF)"
+        - "crates/medprint-wasm (WASM 运行时)"
+        - "crates/medprint-agent (本地打印服务/Spooler)"
+        - "crates/medprint-server (微服务与内置Web)"
+        - "packages/designer (Vue3 设计器/向导)"
+        - "packages/extension (浏览器扩展)"
+        - "apps/desktop (Tauri 桌面端)"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      placeholder: "1. 打开设计器...\n2. 载入某模板...\n3. 点击打印..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为

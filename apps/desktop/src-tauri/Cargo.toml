@@ -1,0 +1,15 @@
+[package]
+name = "medprint-desktop"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+medprint-core = { path = "../../../crates/medprint-core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { version = "2.0", features = [] }

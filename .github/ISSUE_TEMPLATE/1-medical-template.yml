@@ -1,0 +1,48 @@
+name: "🏥 医疗单据模板需求申报 (Medical Template Request)"
+description: "提交医院特定科室或业务场景的报告单模板需求 (LIS化验/PACS影像/心电图/处方笺)"
+title: "[Template]: "
+labels: ["template", "medical"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢为 MedPrint 开源生态贡献医疗场景模板！请尽可能详细地提供报告单格式与业务规则。
+  - type: dropdown
+    id: department
+    attributes:
+      label: 医疗业务科室 / 报告单类别
+      options:
+        - "检验科 LIS (血常规/生化/凝血/尿检)"
+        - "超声/放射/内镜 PACS (图文影像报告)"
+        - "心电图室 ECG (12导联/动态心电)"
+        - "门急诊 / 住院处方笺"
+        - "进出院结算与三联凭证 (针式穿孔纸)"
+        - "血栓弹力图 TEG / 凝血功能波形"
+        - "其他特定临床报告"
+    validations:
+      required: true
+  - type: dropdown
+    id: paper_size
+    attributes:
+      label: 物理纸张规范
+      options:
+        - "A5 横向 (210mm x 148mm) - 最主流"
+        - "A4 纵向 (210mm x 297mm)"
+        - "A4 横向 (297mm x 210mm)"
+        - "三联无碳复写穿孔连续纸 (配针打)"
+        - "特定热敏标签 / 采血管腕带"
+    validations:
+      required: true
+  - type: textarea
+    id: layout_rules
+    attributes:
+      label: 特殊排版规则说明
+      description: "如：A5双列平衡折流、左列满折右列、超出自动压缩至1页、表头跨页重复等"
+      placeholder: "示例：包含35项检验指标，要求在A5横向内采用双列排布，每列均有项目/结果/单位/参考区间子表头，单张纸打印完成..."
+    validations:
+      required: true
+  - type: textarea
+    id: sample_data
+    attributes:
+      label: 示例 JSON 数据或字段清单
+      placeholder: "可选：粘贴脱敏后的测试数据 JSON..."

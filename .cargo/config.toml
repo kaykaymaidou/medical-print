@@ -1,0 +1,6 @@
+[target.x86_64-pc-windows-gnu]
+linker = "rust-lld.exe"
+rustflags = [
+  "-C", "link-arg=-Ld:/Project/rustup/toolchains/stable-x86_64-pc-windows-gnu/lib/rustlib/x86_64-pc-windows-gnu/lib/self-contained",
+  "-C", "link-arg=-Ld:/Project/rustup/toolchains/stable-x86_64-pc-windows-gnu/lib/rustlib/x86_64-pc-windows-gnu/lib"
+]
