@@ -125,6 +125,9 @@
           <span class="badge-green">纸张预算：1 / 1 页 (紧凑受控)</span>
         </div>
         <div class="toolbar-right">
+          <button class="btn-pro-edit" title="将当前单据迁移至极客画布自由调整" @click="$emit('switch-to-canvas')">
+            🛠️ 极客画布精修
+          </button>
           <span class="zoom-label">缩放:</span>
           <select v-model="zoomScale" class="zoom-select">
             <option :value="0.75">75%</option>
@@ -313,6 +316,10 @@ import HospitalSeal from '../components/medical/HospitalSeal.vue'
 import TegChart from '../components/medical/TegChart.vue'
 import PacsReportView from '../components/medical/PacsReportView.vue'
 import PrescriptionView from '../components/medical/PrescriptionView.vue'
+
+defineEmits<{
+  (e: 'switch-to-canvas'): void
+}>()
 
 const presets = [
   { id: 'lis_a5', name: 'A5生化双列' },
@@ -901,7 +908,25 @@ function handleExportPdf() {
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+.btn-pro-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #f0f7ff;
+  border: 1px solid #cce3ff;
+  border-radius: 6px;
+  color: #0071e3;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-pro-edit:hover {
+  background: #0071e3;
+  color: #ffffff;
 }
 .zoom-label {
   font-size: 11px;

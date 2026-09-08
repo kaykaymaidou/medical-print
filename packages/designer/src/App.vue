@@ -42,22 +42,16 @@
 
     <!-- 工作台视口 -->
     <div class="apple-main-viewport">
-      <DoctorWizard v-if="currentView === 'wizard'" />
+      <DoctorWizard
+        v-if="currentView === 'wizard'"
+        @switch-to-canvas="currentView = 'canvas'"
+      />
       
       <!-- 极客自由画布 -->
-      <div v-else class="pro-canvas-wrapper">
-        <div class="pro-canvas-card">
-          <div class="card-icon">📐</div>
-          <h2>信息科极客自由画布模式</h2>
-          <p class="card-desc">
-            支持绝对物理毫米（mm）坐标网格吸附、动态公式脚本编写、印章正片叠底透明度调节，以及爱普生 LQ-630K 针打连续折叠纸穿孔线设置。
-          </p>
-          <div class="info-pill">当前画布标尺单位：<strong>物理毫米 (mm)</strong> | 精度：0.01mm</div>
-          <button class="btn-return-wizard" @click="currentView = 'wizard'">
-            返回医生快速向导
-          </button>
-        </div>
-      </div>
+      <ProCanvas
+        v-else
+        @switch-view="currentView = $event"
+      />
     </div>
   </div>
 </template>
@@ -65,6 +59,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import DoctorWizard from './views/DoctorWizard.vue'
+import ProCanvas from './views/ProCanvas.vue'
 
 const currentView = ref<'wizard' | 'canvas'>('wizard')
 </script>
