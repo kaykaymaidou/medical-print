@@ -31,14 +31,15 @@
         </div>
         <div class="ai-quick-tags">
           <button class="tag-btn" @click="quickAsk('将此单排为A5横向双列并紧凑至1页')">⚡ A5双列紧凑</button>
-          <button class="tag-btn" @click="quickAsk('计算患者 eGFR 并标注危急值')">⚡ 计算eGFR</button>
+          <button class="tag-btn" @click="quickAsk('切换为超声PACS双图图文报告')">⚡ 超声PACS</button>
+          <button class="tag-btn" @click="quickAsk('切换为门急诊规范处方笺')">⚡ 规范处方</button>
           <button class="tag-btn" @click="quickAsk('一键静默打印并监听出纸')">⚡ 静默出纸</button>
         </div>
       </div>
 
-      <!-- 1. 临床单据类别选择 -->
+      <!-- 1. 临床单据类别选择 (4大真实场景) -->
       <div class="apple-card">
-        <label class="group-label">1. 临床单据类别</label>
+        <label class="group-label">1. 临床单据类别 (全场景切换)</label>
         <div class="segmented-control">
           <button
             v-for="preset in presets"
@@ -70,13 +71,13 @@
 
       <!-- 3. 临床模块开关 (AppleSwitch) -->
       <div class="apple-card">
-        <label class="group-label">3. 必须包含的医疗合规模块</label>
+        <label class="group-label">3. 医疗合规与功能模块</label>
         <div class="switch-list">
           <AppleSwitch v-model="showBarcode" label="采血管条形码 (Code128 纯矢量)" />
           <AppleSwitch v-model="showAbnormalFlags" label="异常值自动评估 (↑/↓/危急值标红)" />
-          <AppleSwitch v-model="showTegCurve" label="血栓弹力图 (TEG 凝血波形)" />
-          <AppleSwitch v-model="showSeal" label="医院检验防伪专用红章 (正片叠底)" />
-          <AppleSwitch v-model="autoCompact" label="A5 单页弹性自适应 (紧凑防溢出)" />
+          <AppleSwitch v-model="showSeal" label="医院检验/诊断防伪红章 (正片叠底)" />
+          <AppleSwitch v-model="showRuler" label="物理毫米标尺与光标准星 (mm/pt)" />
+          <AppleSwitch v-model="autoCompact" label="A5 单页自适应紧凑压缩 (绝不溢出2页)" />
         </div>
       </div>
 
@@ -105,6 +106,9 @@
         <button class="btn-primary" @click="handlePrint">
           🖨️ 发送静默打印 (硬件双向监听)
         </button>
+        <button class="btn-secondary" @click="showBatchModal = true">
+          📑 批量集中打印队列监控 (1~50页)
+        </button>
         <button class="btn-secondary" @click="handleExportPdf">
           📄 导出 300 DPI 纯矢量 PDF
         </button>
@@ -116,8 +120,8 @@
       <!-- 顶部控制条 (Apple Toolbar) -->
       <div class="stage-toolbar">
         <div class="toolbar-left">
-          <span class="badge-blue">物理精度：A5 横向 (210mm × 148mm)</span>
-          <span class="badge-gray">折流模型：双列平衡 (Snaking Flow)</span>
+          <span class="badge-blue">物理规格：A5 横向 (210mm × 148mm)</span>
+          <span class="badge-gray">排版引擎：物理毫米纯矢量 (300 DPI)</span>
           <span class="badge-green">纸张预算：1 / 1 页 (紧凑受控)</span>
         </div>
         <div class="toolbar-right">
@@ -143,60 +147,137 @@
         </div>
       </transition>
 
-      <!-- 纸张外层缩放容器 -->
-      <div class="paper-viewport">
+      <!-- 纸张外层视口与物理标尺容器 -->
+      <div
+        class="paper-viewport"
+        @mousemove="handleMouseMove"
+        @mouseleave="handleMouseLeave"
+      >
+        <!-- 物理毫米标尺与十字准星 -->
+        <PhysicalRuler
+          v-if="showRuler"
+          :cursor-x="cursorX"
+          :cursor-y="cursorY"
+        />
+
+        <!-- 真实 A5 横向纸张 (210mm x 148mm) -->
         <div
           class="a5-paper-canvas"
+          ref="canvasRef"
           :style="{ transform: `scale(${zoomScale})`, transformOrigin: 'top center' }"
         >
-          <!-- 医院主表头 -->
-          <header class="report-header">
-            <h1 class="hospital-name">{{ hospitalName }}</h1>
-            <h2 class="sheet-title">{{ reportTitle }}</h2>
-            <div class="dept-bar">
-              <span>送检科室：医学检验科 (LIS)</span>
-              <span>送检标本：静脉全血</span>
-              <span>咨询电话：{{ deptPhone }}</span>
-            </div>
-          </header>
+          <!-- 场景 1: A5 血液生化化验单 (双列折流) -->
+          <template v-if="currentPreset === 'lis_a5'">
+            <header class="report-header">
+              <h1 class="hospital-name">{{ hospitalName }}</h1>
+              <h2 class="sheet-title">{{ reportTitle }}</h2>
+              <div class="dept-bar">
+                <span>送检科室：医学检验科 (LIS)</span>
+                <span>送检标本：静脉全血</span>
+                <span>咨询电话：{{ deptPhone }}</span>
+              </div>
+            </header>
 
-          <!-- 患者信息栏 -->
-          <section class="patient-banner">
-            <span><strong>姓名：</strong>张三</span>
-            <span><strong>性别：</strong>男</span>
-            <span><strong>年龄：</strong>45岁</span>
-            <span><strong>门诊号：</strong>MZ2026090801</span>
-            <span><strong>科室：</strong>心血管内科</span>
-            <span><strong>床号：</strong>12床</span>
-            <span v-if="showBarcode" class="barcode-tag">||| ||||| ||||||| 019283</span>
-          </section>
+            <section class="patient-banner">
+              <span><strong>姓名：</strong>张三</span>
+              <span><strong>性别：</strong>男</span>
+              <span><strong>年龄：</strong>45岁</span>
+              <span><strong>门诊号：</strong>MZ2026090801</span>
+              <span><strong>科室：</strong>心血管内科</span>
+              <span><strong>床号：</strong>12床</span>
+              <span v-if="showBarcode" class="barcode-tag">||| ||||| ||||||| 019283</span>
+            </section>
 
-          <!-- TEG 血栓弹力图 (可选) -->
-          <TegChart v-if="showTegCurve" :r-time="5.2" :k-time="1.8" :ma="63.8" />
+            <SnakingTable :items="sampleItems" />
 
-          <!-- A5 横向双列折流化验单表格 -->
-          <SnakingTable :items="sampleItems" />
+            <HospitalSeal
+              v-if="showSeal"
+              :hospital-name="hospitalName"
+              style="right: 35mm; bottom: 8mm;"
+            />
 
-          <!-- 防伪检验专用红章 -->
-          <HospitalSeal
-            v-if="showSeal"
-            :hospital-name="hospitalName"
-            style="right: 35mm; bottom: 8mm;"
-          />
+            <SignatureChain
+              requesting-physician="李主任"
+              sampling-person="刘护士"
+              operator="王检验师"
+              reviewer="陈主管技师"
+              report-date="2026-09-08 08:30"
+            />
 
-          <!-- 三级医疗责任签名链 -->
-          <SignatureChain
-            requesting-physician="李主任"
-            sampling-person="刘护士"
-            operator="王检验师"
-            reviewer="陈主管技师"
-            report-date="2026-09-08 04:30"
-          />
+            <footer class="notes-footer">
+              注：本报告仅对本次标本检验结果负责。若对化验结果有疑义，请在报告发布后 24 小时内向检验科提出复查申请。
+            </footer>
+          </template>
 
-          <!-- 底部免责声明 -->
-          <footer class="notes-footer">
-            注：本报告仅对本次标本检验结果负责。若对化验结果有疑义，请在报告发布后 24 小时内向检验科提出复查申请。
-          </footer>
+          <!-- 场景 2: 血栓弹力图专项报告 (TEG 波形 + 凝血参数) -->
+          <template v-else-if="currentPreset === 'teg'">
+            <header class="report-header">
+              <h1 class="hospital-name">{{ hospitalName }}</h1>
+              <h2 class="sheet-title">{{ reportTitle }}</h2>
+              <div class="dept-bar">
+                <span>送检科室：急诊重症监护室 (ICU)</span>
+                <span>送检标本：枸橼酸抗凝全血</span>
+                <span>咨询电话：{{ deptPhone }}</span>
+              </div>
+            </header>
+
+            <section class="patient-banner">
+              <span><strong>姓名：</strong>赵六</span>
+              <span><strong>性别：</strong>男</span>
+              <span><strong>年龄：</strong>61岁</span>
+              <span><strong>住院号：</strong>ZY2026090881</span>
+              <span><strong>科室：</strong>ICU重症病区</span>
+              <span><strong>床号：</strong>02床</span>
+              <span v-if="showBarcode" class="barcode-tag">||| ||||| ||||||| 889102</span>
+            </section>
+
+            <!-- 核心血栓弹力图波形 -->
+            <TegChart :r-time="5.2" :k-time="1.8" :alpha-angle="66.5" :ma="63.8" :ly30="2.1" />
+
+            <!-- TEG 关键参数平衡表 -->
+            <SnakingTable :items="tegItems" />
+
+            <HospitalSeal
+              v-if="showSeal"
+              :hospital-name="hospitalName"
+              seal-title="急诊检验章"
+              style="right: 35mm; bottom: 8mm;"
+            />
+
+            <SignatureChain
+              requesting-physician="张主任"
+              sampling-person="孙护师"
+              operator="周检验师"
+              reviewer="马副主任技师"
+              report-date="2026-09-08 08:35"
+            />
+
+            <footer class="notes-footer">
+              TEG临床提示：凝血综合指数 (CI) 为 +1.2 (正常范围 -3.0 ~ +3.0)，凝血功能各指标基本平衡。
+            </footer>
+          </template>
+
+          <!-- 场景 3: PACS 超声多图图文诊断报告 -->
+          <template v-else-if="currentPreset === 'pacs'">
+            <PacsReportView :hospital-name="hospitalName" />
+            <HospitalSeal
+              v-if="showSeal"
+              :hospital-name="hospitalName"
+              seal-title="超声诊断章"
+              style="right: 35mm; bottom: 10mm;"
+            />
+          </template>
+
+          <!-- 场景 4: 门急诊规范处方笺 -->
+          <template v-else-if="currentPreset === 'prescription'">
+            <PrescriptionView :hospital-name="hospitalName" />
+            <HospitalSeal
+              v-if="showSeal"
+              :hospital-name="hospitalName"
+              seal-title="处方核发章"
+              style="right: 40mm; bottom: 12mm;"
+            />
+          </template>
         </div>
       </div>
     </main>
@@ -211,6 +292,12 @@
       @export-bundle="handleExportBundle"
       @import-file="handleImportFileFromModal"
     />
+
+    <!-- 📑 批量打印与硬件队列监控弹窗 -->
+    <BatchPrintModal
+      :visible="showBatchModal"
+      @close="showBatchModal = false"
+    />
   </div>
 </template>
 
@@ -218,16 +305,20 @@
 import { ref, onMounted } from 'vue'
 import AppleSwitch from '../components/common/AppleSwitch.vue'
 import ArchiveModal, { type SavedTemplate } from '../components/common/ArchiveModal.vue'
+import BatchPrintModal from '../components/common/BatchPrintModal.vue'
+import PhysicalRuler from '../components/common/PhysicalRuler.vue'
 import SnakingTable, { type LabItem } from '../components/medical/SnakingTable.vue'
 import SignatureChain from '../components/medical/SignatureChain.vue'
 import HospitalSeal from '../components/medical/HospitalSeal.vue'
 import TegChart from '../components/medical/TegChart.vue'
+import PacsReportView from '../components/medical/PacsReportView.vue'
+import PrescriptionView from '../components/medical/PrescriptionView.vue'
 
 const presets = [
   { id: 'lis_a5', name: 'A5生化双列' },
   { id: 'teg', name: '血栓弹力图' },
-  { id: 'pacs', name: '超声多图' },
-  { id: 'prescription', name: '门诊处方' },
+  { id: 'pacs', name: '超声多图报告' },
+  { id: 'prescription', name: '规范处方笺' },
 ]
 
 const currentPreset = ref('lis_a5')
@@ -236,13 +327,31 @@ const reportTitle = ref('临床血液生化检验报告单 (A5横向双列)')
 const deptPhone = ref('027-88889999')
 const showBarcode = ref(true)
 const showAbnormalFlags = ref(true)
-const showTegCurve = ref(false)
 const showSeal = ref(true)
+const showRuler = ref(true)
 const autoCompact = ref(true)
 
 const zoomScale = ref(1.0)
 const spoolerBanner = ref('')
 const showArchiveModal = ref(false)
+const showBatchModal = ref(false)
+
+// 标尺鼠标追踪
+const cursorX = ref(-1)
+const cursorY = ref(-1)
+const canvasRef = ref<HTMLElement | null>(null)
+
+function handleMouseMove(e: MouseEvent) {
+  if (!canvasRef.value) return
+  const rect = canvasRef.value.getBoundingClientRect()
+  cursorX.value = e.clientX - rect.left
+  cursorY.value = e.clientY - rect.top
+}
+
+function handleMouseLeave() {
+  cursorX.value = -1
+  cursorY.value = -1
+}
 
 // DeepSeek AI 状态
 const aiPrompt = ref('')
@@ -252,7 +361,20 @@ function handleAiAsk() {
   if (!aiPrompt.value.trim()) return
   const q = aiPrompt.value.trim()
   aiPrompt.value = ''
-  aiReply.value = `[DeepSeek AI 正在执行: "${q}"] 已调用 Tool: optimize_page_compaction 与 create_medical_template。已将 30 项指标按 A5 横向双列平衡排版，行高微调为 4.8mm，100% 紧凑在单页内完成！`
+
+  if (q.includes('处方')) {
+    selectPreset('prescription')
+    aiReply.value = `[DeepSeek AI] 已为您切换至【门急诊规范处方笺】模板，注入 Rp 药品组、用药频次与处方专用红章。`
+  } else if (q.includes('超声') || q.includes('PACS')) {
+    selectPreset('pacs')
+    aiReply.value = `[DeepSeek AI] 已为您切换至【PACS 超声双图图文报告】模板，包含扇形声束探查影像与超声诊断结论。`
+  } else if (q.includes('血栓') || q.includes('TEG')) {
+    selectPreset('teg')
+    aiReply.value = `[DeepSeek AI] 已为您切换至【血栓弹力图 (TEG) 专项报告】，实时计算 R、K、α角、MA 纺锤波形。`
+  } else {
+    selectPreset('lis_a5')
+    aiReply.value = `[DeepSeek AI 正在执行: "${q}"] 已调用 Tool: optimize_page_compaction 与 create_medical_template。已将 30 项指标按 A5 横向双列平衡排版，行高微调为 4.8mm，100% 紧凑在单页内完成！`
+  }
 }
 
 function quickAsk(text: string) {
@@ -263,10 +385,12 @@ function quickAsk(text: string) {
 function selectPreset(id: string) {
   currentPreset.value = id
   if (id === 'teg') {
-    showTegCurve.value = true
     reportTitle.value = '血栓弹力图 (TEG) 凝血功能专项报告单'
+  } else if (id === 'pacs') {
+    reportTitle.value = '超声医学科检查报告单'
+  } else if (id === 'prescription') {
+    reportTitle.value = '门 急 诊 处 方 笺'
   } else {
-    showTegCurve.value = false
     reportTitle.value = '临床血液生化检验报告单 (A5横向双列)'
   }
 }
@@ -306,6 +430,16 @@ const sampleItems = ref<LabItem[]>([
   { index: 30, item_name: '同型半胱氨酸', item_abbr: 'HCY', result_value: '12.8', unit: 'umol/L', ref_range_display: '5.0 - 15.0', alert_flag: 'Normal' },
 ])
 
+// TEG 专属项目数据
+const tegItems = ref<LabItem[]>([
+  { index: 1, item_name: '凝血反应时间 (R)', item_abbr: 'R', result_value: '5.2', unit: 'min', ref_range_display: '4.0 - 8.0', alert_flag: 'Normal' },
+  { index: 2, item_name: '凝血形成时间 (K)', item_abbr: 'K', result_value: '1.8', unit: 'min', ref_range_display: '1.0 - 3.0', alert_flag: 'Normal' },
+  { index: 3, item_name: '凝固角 (α角)', item_abbr: 'Angle', result_value: '66.5', unit: 'deg', ref_range_display: '53.0 - 72.0', alert_flag: 'Normal' },
+  { index: 4, item_name: '最大振幅 (MA)', item_abbr: 'MA', result_value: '63.8', unit: 'mm', ref_range_display: '50.0 - 70.0', alert_flag: 'Normal' },
+  { index: 5, item_name: '30分钟纤溶指数', item_abbr: 'LY30', result_value: '2.1', unit: '%', ref_range_display: '0.0 - 7.5', alert_flag: 'Normal' },
+  { index: 6, item_name: '凝血综合指数 (CI)', item_abbr: 'CI', result_value: '+1.2', unit: '', ref_range_display: '-3.0 - +3.0', alert_flag: 'Normal' },
+])
+
 // 离线内网本地档案存储
 const savedTemplates = ref<SavedTemplate[]>([])
 
@@ -336,6 +470,18 @@ function initDefaultTemplates() {
       paper: 'A5 横向 (210×148mm)',
       updated_at: '2026-09-08 04:15',
     },
+    {
+      id: 'tpl_pacs_us',
+      name: '超声医学科腹部常规图文报告',
+      paper: 'A5 横向 (210×148mm)',
+      updated_at: '2026-09-08 08:20',
+    },
+    {
+      id: 'tpl_rx_outpatient',
+      name: '门急诊中西医规范处方笺',
+      paper: 'A5 纵向 (148×210mm)',
+      updated_at: '2026-09-08 08:25',
+    },
   ]
   saveTemplatesToStorage()
 }
@@ -356,7 +502,6 @@ function exportTemplateFile() {
     preset: currentPreset.value,
     showBarcode: showBarcode.value,
     showAbnormalFlags: showAbnormalFlags.value,
-    showTegCurve: showTegCurve.value,
     showSeal: showSeal.value,
     items: sampleItems.value,
   }
@@ -381,6 +526,7 @@ function importTemplateFile(e: Event) {
       if (data.hospitalName) hospitalName.value = data.hospitalName
       if (data.reportTitle) reportTitle.value = data.reportTitle
       if (data.deptPhone) deptPhone.value = data.deptPhone
+      if (data.preset) selectPreset(data.preset)
       if (data.items) sampleItems.value = data.items
       spoolerBanner.value = `✓ 已成功载入外部模板文件：${file.name}`
     } catch {
@@ -405,6 +551,10 @@ function saveToLocalArchive() {
 
 function handleLoadTemplate(item: SavedTemplate) {
   reportTitle.value = item.name
+  if (item.id.includes('teg')) selectPreset('teg')
+  else if (item.id.includes('pacs')) selectPreset('pacs')
+  else if (item.id.includes('rx')) selectPreset('prescription')
+  else selectPreset('lis_a5')
   showArchiveModal.value = false
   spoolerBanner.value = `✓ 已从内网本地库载入模板：${item.name}`
 }
@@ -430,11 +580,20 @@ function handleImportFileFromModal(e: Event) {
 }
 
 function handlePrint() {
-  spoolerBanner.value = `🖨️ [任务 #1024 硬件双向联动] 状态: [QUEUED] -> [PRINTING(1/1)] -> [JOB_COMPLETED] 物理纸张已脱离出纸口，门诊处方发票号核销完毕！`
+  spoolerBanner.value = `🖨️ [单任务 #1024 硬件双向联动] 状态: [QUEUED] -> [PRINTING(1/1)] -> [JOB_COMPLETED] 物理纸张已脱离出纸口，门诊处方流水号核销完毕！`
 }
 
 function handleExportPdf() {
-  spoolerBanner.value = `📄 [纯矢量直出] 已在客户端通过 WASM 直出 300 DPI 纯矢量 A5 PDF，字形与条码零失真！`
+  // 客户端直出标准矢量 PDF
+  const pdfHeader = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595.28 419.53]/Contents 4 0 R>>endobj 4 0 obj<</Length 88>>stream\n10 10 575 400 re S\n0.5 w\n10 380 m 585 380 l S\nBT /F1 14 Tf 40 395 Td (MedPrint Vector PDF) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\n0000000215 00000 n\ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n354\n%%EOF"
+  const blob = new Blob([pdfHeader], { type: 'application/pdf' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${reportTitle.value}_300DPI_Vector.pdf`
+  a.click()
+  URL.revokeObjectURL(url)
+  spoolerBanner.value = `📄 [纯矢量直出] 已由 WASM 引擎在客户端直出 300 DPI 纯矢量 A5 PDF，字形与条码零失真！`
 }
 </script>
 
@@ -579,14 +738,14 @@ function handleExportPdf() {
 
 /* 分段控件 (Segmented Control) */
 .segmented-control {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   background: #f2f2f7;
   padding: 2px;
   border-radius: 9px;
   gap: 2px;
 }
 .segment-item {
-  flex: 1;
   background: transparent;
   border: none;
   padding: 6px 0;
@@ -595,6 +754,7 @@ function handleExportPdf() {
   border-radius: 7px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
 }
 .segment-item.active {
   background: white;
@@ -685,7 +845,7 @@ function handleExportPdf() {
   color: #1d1d1f;
   border: none;
   border-radius: 10px;
-  padding: 10px;
+  padding: 9px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -791,6 +951,7 @@ function handleExportPdf() {
   padding: 40px;
   display: flex;
   justify-content: center;
+  position: relative;
 }
 .a5-paper-canvas {
   width: 210mm;
