@@ -58,38 +58,39 @@
 medprint/
 ├── crates/
 │   ├── medprint-core/       # Rust 核心排版引擎 (物理毫米/A5折流/公式/TEG图表/纯矢量PDF)
-│   ├── medprint-wasm/       # wasm-bindgen 浏览器前端排版与渲染桥接
+│   ├── medprint-wasm/       # wasm-bindgen 浏览器前端极速排版与渲染桥接
 │   ├── medprint-agent/      # 终端轻量打印守护进程 (Windows Spooler / Linux CUPS 双向回调)
-│   └── medprint-server/     # 单一二进制独立服务 (内置 Vue3 设计器 + REST/WebSocket API)
+│   └── medprint-server/     # 单一二进制独立微服务 (内置 Vue3 静态托管 + REST/WebSocket API + 本地离线持久化)
 ├── packages/
-│   ├── designer/            # Vue 3 + TypeScript 拖拽式设计器 (含医生向导与专业画布)
-│   └── extension/           # Chrome/Edge 浏览器扩展 (Native Messaging 直连打印机)
+│   ├── designer/            # Vue 3 + TypeScript 医疗设计器 (Apple Design: 医生向导 + 极客画布 + 公式实验室)
+│   ├── extension/           # Chrome/Edge 浏览器扩展 (Native Messaging 直连打印机免端口与证书)
+│   └── ai-agent/            # 医疗排版 AI 智能体 (接入 DeepSeek Harness dsh 插件体系，实现临床自主规划)
 ├── apps/
 │   └── desktop/             # Tauri 2.0 跨平台独立桌面客户端
 ├── .github/                 # 开源 Issue 模板 (医疗单据/打印机兼容度/信创反馈) 与 CI
 ├── docs/                    # 痛点深度调研白皮书与技术规范
-└── GEMINI.md                # 医疗领域不可动摇的七大工程准则
+└── AGENTS.md                # 跨 AI 协作规范与医疗工程七大准则
 ```
 
 ---
 
 ## 🚀 快速上手
 
-### 1. 运行核心 Rust 测试
-```bash
-cargo test -p medprint-core
-```
-
-### 2. 启动 Vue 3 可视化设计器开发环境
+### 1. 编译纯前端 Web 设计器
 ```bash
 pnpm install
-pnpm dev:designer
+pnpm build:designer
 ```
 
-### 3. 编译运行单文件微服务 (`medprint-server`)
+### 2. 编译并运行单文件微服务 (`medprint-server`)
 ```bash
 cargo run -p medprint-server
-# 访问 http://localhost:19800 即可使用内置设计器与打印服务
+# 访问 http://localhost:19800 即可直接使用完整 Web Studio、离线档案库与 300 DPI 矢量打印
+```
+
+### 3. 本地开发调试
+```bash
+pnpm dev:designer
 ```
 
 ---
@@ -98,12 +99,12 @@ cargo run -p medprint-server
 
 欢迎各大医院信息科、医疗软件厂商（HIS/LIS/PACS）、打印机厂商与开源爱好者共同建设：
 - [🏥 医疗单据模板需求申报](../../issues/new?template=1-medical-template.yml)
-- [🖨️ 打印机硬件与状态回调兼容性报告](../../issues/new?template=2-printer-driver.yml)
-- [🇨🇳 信创国产化系统适配反馈](../../issues/new?template=3-xinchuang-env.yml)
-- [🐛 缺陷与 Bug 报告](../../issues/new?template=4-bug-report.yml)
+- [🖨️ 打印机硬件兼容性反馈](../../issues/new?template=2-printer-compatibility.yml)
+- [🇨🇳 信创国产化系统问题反馈](../../issues/new?template=3-xinchuang-report.yml)
+- [🐛 缺陷与建议反馈](../../issues/new?template=4-bug-report.yml)
 
 ---
 
 ## 📄 开源许可证
 
-本项目采用 [Apache-2.0 许可证](LICENSE)。
+本项目基于 [Apache-2.0 许可证](LICENSE) 开源，允许商业友好集成与定制。
