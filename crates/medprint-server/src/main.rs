@@ -88,8 +88,53 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let _ = socket.write_all(header.as_bytes()).await;
                         let _ = socket.write_all(&pdf_bytes).await;
                     } else {
-                        // 根路径：返回内置 Web 设计器引导页
-                        let html = r#"<!DOCTYPE html>
+                        // 静态资源分发或内置引导页：支持直接加载 Vue 3 Web Studio
+                        let clean_path = if path == "/" || path.is_empty() {
+                            "/index.html"
+                        } else {
+                            path.split('?').next().unwrap_or(path)
+                        };
+
+                        let candidate_dirs = [
+                            "packages/designer/dist",
+                            "./dist",
+                            "./web",
+                            "../packages/designer/dist",
+                        ];
+
+                        let mut file_content: Option<(Vec<u8>, &'static str)> = None;
+                        for dir in candidate_dirs {
+                            let candidate_path = format!("{}{}", dir, clean_path);
+                            if let Ok(bytes) = std::fs::read(&candidate_path) {
+                                let mime = if clean_path.ends_with(".html") {
+                                    "text/html; charset=utf-8"
+                                } else if clean_path.ends_with(".js") {
+                                    "application/javascript; charset=utf-8"
+                                } else if clean_path.ends_with(".css") {
+                                    "text/css; charset=utf-8"
+                                } else if clean_path.ends_with(".svg") {
+                                    "image/svg+xml"
+                                } else if clean_path.ends_with(".wasm") {
+                                    "application/wasm"
+                                } else {
+                                    "application/octet-stream"
+                                };
+                                file_content = Some((bytes, mime));
+                                break;
+                            }
+                        }
+
+                        if let Some((bytes, mime)) = file_content {
+                            let header = format!(
+                                "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\nAccess-Control-Allow-Origin: *\r\n\r\n",
+                                mime,
+                                bytes.len()
+                            );
+                            let _ = socket.write_all(header.as_bytes()).await;
+                            let _ = socket.write_all(&bytes).await;
+                        } else {
+                            // 降级返回内置 Web 服务状态页
+                            let html = r#"<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -116,12 +161,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     </div>
 </body>
 </html>"#;
-                        let resp = format!(
-                            "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\n\r\n{}",
-                            html.as_bytes().len(),
-                            html
-                        );
-                        let _ = socket.write_all(resp.as_bytes()).await;
+                            let resp = format!(
+                                "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\n\r\n{}",
+                                html.as_bytes().len(),
+                                html
+                            );
+                            let _ = socket.write_all(resp.as_bytes()).await;
+                        }
                     }
                 }
                 Err(e) => {
