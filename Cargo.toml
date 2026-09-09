@@ -3,7 +3,7 @@ resolver = "2"
 members = [
     "crates/medprint-core",
     "crates/medprint-wasm",
-    "crates/medprint-agent",
+    "crates/medprint-spooler",
     "crates/medprint-server",
 ]
 

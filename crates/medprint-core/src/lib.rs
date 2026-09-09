@@ -10,6 +10,7 @@
 //! 5. 三级医疗责任签名链与防伪专用红章合规
 //! 6. 零 C 库依赖，完全跨平台 (WASM + Native)
 
+pub mod barcode;
 pub mod charts;
 pub mod drivers;
 pub mod expr;
@@ -18,10 +19,11 @@ pub mod pdf;
 pub mod schema;
 pub mod units;
 
+pub use barcode::{BarcodeBar, Code128Encoder};
 pub use charts::{PacsGridLayout, TegChartGenerator};
 pub use expr::{ClinicalFormulas, DemographicEvaluator};
 pub use layout::{PageBreakPolicy, SnakingTableEngine};
-pub use pdf::VectorPdfDoc;
+pub use pdf::{MedicalReportCompiler, VectorPdfDoc};
 pub use schema::{
     AgeUnit, AlertFlag, Gender, HospitalSeal, LabItemRow, MedicalReportType, PatientInfo,
     ReportElement, ReportTemplate, SignatureChain,

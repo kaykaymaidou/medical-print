@@ -60,19 +60,36 @@ When editing or extending code in this repository, all AI agents **MUST** strict
 
 ---
 
-## 🛠️ Monorepo Structure & Tech Stack
+## 🏛️ 4-Tier Monorepo Architecture & Responsibilities
 
-- **Workspace Management**: Cargo Workspace (Rust) + pnpm Workspaces (Web)
-- **Rust Backend & Crates**:
-  - `crates/medprint-core`: AST schema, units, snaking layout, clinical formulas, vector PDF emitter, raw drivers.
-  - `crates/medprint-wasm`: wasm-bindgen bindings for browser execution.
-  - `crates/medprint-agent`: Native print daemon with Windows Spooler / CUPS hooks and Chrome Native Messaging host.
-  - `crates/medprint-server`: Standalone microservice with embedded web UI and REST/WebSocket APIs.
-- **Frontend Packages**:
-  - `packages/designer`: Vue 3 + TypeScript + Vite + Pinia (Doctor Wizard + Pro Canvas).
-  - `packages/extension`: Chrome / Edge extension (Manifest V3) Native Messaging bridge.
-  - `packages/ai-agent`: DeepSeek Harness / AI Agent plugin for autonomous medical template generation and clinical analysis.
-  - `apps/desktop`: Tauri 2.0 standalone application.
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ Tier 4: Applications (终端展现层)                                      │
+│   • packages/designer: Vue 3 Apple Studio (Doctor Wizard + Pro Canvas) │
+│   • packages/extension: Chrome / Edge MV3 Native Messaging Extension  │
+│   • apps/desktop: Tauri 2.0 Desktop Standalone Application             │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │
+┌──────────────────────────────────┴─────────────────────────────────────┐
+│ Tier 3: Clinical AI Agent (临床智能体层)                               │
+│   • packages/ai-agent: DeepSeek Harness / ReAct Tool Calling Engine    │
+│     (模板自主规划合成、A5折流压缩优化、临床合规自动化审查)            │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │
+┌──────────────────────────────────┴─────────────────────────────────────┐
+│ Tier 2: Hardware & Host Services (硬件与宿主服务层)                     │
+│   • crates/medprint-spooler: 原生打印机硬件桥接与 Native Messaging 宿主 │
+│     (Windows Spooler / Linux CUPS 物理缺纸、卡纸与出纸监听，非 AI)     │
+│   • crates/medprint-server: 单二进制独立微服务 (内置 Web 托管与存储)   │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │
+┌──────────────────────────────────┴─────────────────────────────────────┐
+│ Tier 1: Core Domain & Rendering (核心领域与矢量排版层)                 │
+│   • crates/medprint-core: 纯物理微米 AST、Snaking 折流、Code128 矢量条码│
+│     标准 Type 1 字体矢量 PDF 编译器、临床医学公式。0 平台外部依赖。     │
+│   • crates/medprint-wasm: 纯 WebAssembly 导出，无网络离线极速排版与直出 │
+└────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 

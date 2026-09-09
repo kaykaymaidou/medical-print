@@ -59,7 +59,7 @@ medprint/
 ├── crates/
 │   ├── medprint-core/       # Rust 核心排版引擎 (物理毫米/A5折流/公式/TEG图表/纯矢量PDF)
 │   ├── medprint-wasm/       # wasm-bindgen 浏览器前端极速排版与渲染桥接
-│   ├── medprint-agent/      # 终端轻量打印守护进程 (Windows Spooler / Linux CUPS 双向回调)
+│   ├── medprint-spooler/    # 打印机硬件守护进程 (Windows Spooler / Linux CUPS 双向状态监听与 NativeHost)
 │   └── medprint-server/     # 单一二进制独立微服务 (内置 Vue3 静态托管 + REST/WebSocket API + 本地离线持久化)
 ├── packages/
 │   ├── designer/            # Vue 3 + TypeScript 医疗设计器 (Apple Design: 医生向导 + 极客画布 + 公式实验室)

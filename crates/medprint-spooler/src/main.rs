@@ -1,8 +1,11 @@
-//! # MedPrint Agent 主入口
+//! # MedPrint Hardware Spooler Daemon
 //!
-//! 跨平台原生打印守护进程，支持：
-//! 1. Chrome / Edge 浏览器扩展 Native Messaging 管道模式
-//! 2. 独立控制台与 Windows 服务托盘模式
+//! 跨平台原生打印硬件守护进程 (Hardware Printer Bridge)，负责：
+//! 1. Chrome / Edge 浏览器扩展 Native Messaging 管道模式 (直通物理打印机，免开放端口与SSL证书)
+//! 2. Windows Spooler 与 Linux CUPS 物理硬件状态监听 (真实缺纸、卡纸、吐纸完毕回调)
+//!
+//! 【职责边界提示】：
+//! 本组件专注于底层打印机硬件通信，绝不承担 AI 语义理解与规划任务（AI 智能体专属职责归属于 packages/ai-agent）。
 
 mod native_msg;
 mod spooler;
@@ -13,7 +16,7 @@ use spooler::PrinterHardwareStatus;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    log::info!("MedPrint Native Print Agent starting...");
+    log::info!("MedPrint Printer Hardware Spooler Daemon starting...");
 
     // 检查是否通过浏览器扩展 Native Messaging 唤起
     let is_native_messaging_mode = std::env::args().any(|arg| arg.starts_with("chrome-extension://"));
@@ -58,14 +61,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     } else {
         println!("=======================================================");
-        println!(" MedPrint Native Print Daemon (v0.1.0)");
+        println!(" MedPrint Hardware Spooler Daemon (v0.1.0)");
         println!(" Cross-Platform Medical Hardware Spooler Service");
         println!(" Supporting Windows Spooler & Linux CUPS (UOS / Kylin)");
         println!("=======================================================");
-        println!("Agent daemon running. Press Ctrl+C to exit.");
+        println!("Spooler daemon running. Press Ctrl+C to exit.");
 
         tokio::signal::ctrl_c().await?;
-        println!("Shutting down MedPrint Agent gracefully.");
+        println!("Shutting down MedPrint Spooler Daemon gracefully.");
     }
 
     Ok(())

@@ -1,12 +1,13 @@
 [package]
-name = "medprint-agent"
+name = "medprint-spooler"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+description = "MedPrint Printer Hardware Spooler Daemon & Native Messaging Host"
 
 [[bin]]
-name = "medprint-agent"
+name = "medprint-spooler"
 path = "src/main.rs"
 
 [dependencies]

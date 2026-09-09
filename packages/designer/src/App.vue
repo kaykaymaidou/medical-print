@@ -35,7 +35,7 @@
       <div class="header-section right">
         <div class="agent-status-tag">
           <span class="status-dot"></span>
-          <span>Agent 本地服务就绪 (Spooler 联机)</span>
+          <span>🖨️ 打印机 Spooler 硬件联机 (就绪)</span>
         </div>
       </div>
     </header>

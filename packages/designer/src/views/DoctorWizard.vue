@@ -15,9 +15,9 @@
         <div class="card-header">
           <div class="header-left">
             <span class="ai-sparkle">✨</span>
-            <span class="card-title">DeepSeek 临床排版助理</span>
+            <span class="card-title">DeepSeek 临床排版智能体</span>
           </div>
-          <span class="pill-badge">Agent 就绪</span>
+          <span class="pill-badge">AI 智能体就绪</span>
         </div>
         <p class="ai-speech">{{ aiReply || '您好！我是接入 DeepSeek Harness 的医疗排版助理。输入临床诉求，我将为您自主规划排版并计算公式。' }}</p>
         <div class="ai-input-row">
@@ -33,6 +33,7 @@
           <button class="tag-btn" @click="quickAsk('将此单排为A5横向双列并紧凑至1页')">⚡ A5双列紧凑</button>
           <button class="tag-btn" @click="quickAsk('切换为超声PACS双图图文报告')">⚡ 超声PACS</button>
           <button class="tag-btn" @click="quickAsk('切换为门急诊规范处方笺')">⚡ 规范处方</button>
+          <button class="tag-btn" @click="quickAsk('审查当前单据医疗法规合规性')">⚡ 合规审查</button>
           <button class="tag-btn" @click="quickAsk('一键静默打印并监听出纸')">⚡ 静默出纸</button>
         </div>
       </div>
@@ -371,16 +372,21 @@ function handleAiAsk() {
 
   if (q.includes('处方')) {
     selectPreset('prescription')
-    aiReply.value = `[DeepSeek AI] 已为您切换至【门急诊规范处方笺】模板，注入 Rp 药品组、用药频次与处方专用红章。`
+    aiReply.value = `[DeepSeek AI 智能体] 🤖 调用 Tool: create_medical_template\n已为您合成【门急诊规范处方笺】AST，注入 Rp 药品组、用药频次与处方专用红章。`
   } else if (q.includes('超声') || q.includes('PACS')) {
     selectPreset('pacs')
-    aiReply.value = `[DeepSeek AI] 已为您切换至【PACS 超声双图图文报告】模板，包含扇形声束探查影像与超声诊断结论。`
+    aiReply.value = `[DeepSeek AI 智能体] 🤖 调用 Tool: create_medical_template\n已为您合成【PACS 超声双图图文报告】AST，包含高保真声束影像网格与超声诊断结论。`
   } else if (q.includes('血栓') || q.includes('TEG')) {
     selectPreset('teg')
-    aiReply.value = `[DeepSeek AI] 已为您切换至【血栓弹力图 (TEG) 专项报告】，实时计算 R、K、α角、MA 纺锤波形。`
+    aiReply.value = `[DeepSeek AI 智能体] 🤖 调用 Tool: create_medical_template\n已为您合成【血栓弹力图 (TEG) 专项报告】，实时拟合 R、K、α角、MA 纺锤凝血波形。`
+  } else if (q.includes('合规') || q.includes('审查') || q.includes('法规')) {
+    aiReply.value = `[DeepSeek AI 智能体] 🤖 调用 Tool: verify_compliance\n✅ 医疗法规审查结果：三级医师签名链 (采样/操作/审核) 完整，采血管条形码正常，防伪红章与24小时复核免责声明均合规，符合国家卫健委《医疗机构临床实验室管理办法》。`
+  } else if (q.includes('打印') || q.includes('出纸')) {
+    handlePrint()
+    aiReply.value = `[DeepSeek AI 智能体] 🤖 调用 Tool: dispatch_silent_print\n已向本地 medprint-spooler 守护进程派发静默打印，并启动 Spooler 硬件真实出纸监听！`
   } else {
     selectPreset('lis_a5')
-    aiReply.value = `[DeepSeek AI 正在执行: "${q}"] 已调用 Tool: optimize_page_compaction 与 create_medical_template。已将 30 项指标按 A5 横向双列平衡排版，行高微调为 4.8mm，100% 紧凑在单页内完成！`
+    aiReply.value = `[DeepSeek AI 智能体 正在执行: "${q}"]\n🤖 调用 Tool: optimize_page_compaction 与 create_medical_template\n已将 30 项化验指标按 A5 横向双列平衡折流排版，行高微调为 4.8mm，100% 紧凑在单页内！`
   }
 }
 

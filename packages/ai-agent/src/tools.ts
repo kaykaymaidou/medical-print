@@ -79,13 +79,27 @@ export const MEDPRINT_TOOLS: ToolDefinition[] = [
     },
   },
   {
+    name: 'verify_compliance',
+    description: '医疗单据合规性自动化审查：验证三级责任医师签名链完整性、条形码唯一性、防伪印章正片叠底与免责复核声明',
+    parameters: {
+      type: 'object',
+      properties: {
+        has_signatures: { type: 'boolean', description: '是否包含检验人与审核人签名' },
+        has_barcode: { type: 'boolean', description: '是否包含唯一采血管/门诊条码' },
+        has_seal: { type: 'boolean', description: '是否加盖防伪检验章' },
+        has_disclaimer: { type: 'boolean', description: '是否包含24小时复核免责声明' },
+      },
+      required: ['has_signatures', 'has_barcode'],
+    },
+  },
+  {
     name: 'dispatch_silent_print',
-    description: '通过本地 Rust Agent 管道派发静默打印，并启动物理打印机 Spooler 真实硬件状态（缺纸/卡纸/出纸完毕）双向监听',
+    description: '通过本地 medprint-spooler 硬件守护进程派发静默打印，并启动物理打印机 Spooler 真实硬件状态（缺纸/卡纸/出纸完毕）双向监听',
     parameters: {
       type: 'object',
       properties: {
         template_id: { type: 'string', description: '模板唯一标识' },
-        printer_name: { type: 'string', description: '目标物理打印机名称 (可选，默认使用默认打印机)' },
+        printer_name: { type: 'string', description: '目标物理打印机名称 (可选，默认使用系统默认)' },
       },
       required: ['template_id'],
     },
@@ -148,6 +162,24 @@ export class MedPrintToolExecutor {
             page_count: 2,
             message: `项目过多 (${total_items_count}项)，正常扩展至第 2 页，表头将自动跨页克隆复印。`,
           }
+        }
+      }
+
+      case 'verify_compliance': {
+        const { has_signatures, has_barcode, has_seal, has_disclaimer } = args
+        const issues: string[] = []
+        if (!has_signatures) issues.push('缺少检验人或审核医师电子签名，违反三级责任制')
+        if (!has_barcode) issues.push('缺少采血管/标本唯一条形码，存在混样风险')
+        if (!has_seal) issues.push('未加盖医院检验防伪红章')
+        if (!has_disclaimer) issues.push('缺少24小时复查申请声明标语')
+
+        return {
+          status: issues.length === 0 ? 'compliant' : 'warnings',
+          is_valid_for_print: has_signatures && has_barcode,
+          issues,
+          message: issues.length === 0
+            ? '✅ 医疗合规性审查 100% 通过（三级签名、条码、印章、免责标语均齐全）。'
+            : `⚠️ 存在 ${issues.length} 项合规提示：${issues.join('；')}`,
         }
       }
 
