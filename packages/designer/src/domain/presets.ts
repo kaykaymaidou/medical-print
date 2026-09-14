@@ -86,6 +86,9 @@ function seal(hospitalName: string, sealTitle: string): ReportElement {
     diameter_mm: 32,
     angle_jitter_deg: 1.5,
     opacity: 0.82,
+    constraints: {
+      anchor_position: 'BottomRight',
+    },
   }
 }
 
@@ -118,6 +121,7 @@ export function createReportTemplate(
       paper_size: A5_LANDSCAPE,
       margins: { ...MEDICAL_MARGINS },
       report_type: reportType,
+      page_budget: 'SinglePageHard',
       elements: [
         header(hospitalName, reportTitle, '急诊重症监护室 (ICU)'),
         { kind: 'PatientBanner', include_barcode: includeBarcode, fields: defaultPatientFields() },
@@ -128,6 +132,13 @@ export function createReportTemplate(
           alpha_angle_deg: 66.5,
           ma_amplitude_mm: 63.8,
           ly30_percent: 2.1,
+          constraints: {
+            obstacle_constraint: {
+              is_obstacle: true,
+              safe_padding_mm: 2.0,
+              flow_behavior: 'AvoidAndNarrow',
+            },
+          },
         },
         {
           kind: 'SnakingTable',
@@ -197,6 +208,7 @@ export function createReportTemplate(
     paper_size: A5_LANDSCAPE,
     margins: { ...MEDICAL_MARGINS },
     report_type: 'LisBloodRoutine',
+    page_budget: 'SinglePageHard',
     elements: [
       header(hospitalName, reportTitle, '医学检验科 (LIS)'),
       { kind: 'PatientBanner', include_barcode: includeBarcode, fields: defaultPatientFields() },

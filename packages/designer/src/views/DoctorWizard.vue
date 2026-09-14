@@ -205,6 +205,14 @@
           <span class="badge-green">纸张预算：1 / 1 页 (紧凑受控)</span>
         </div>
         <div class="toolbar-right">
+          <button
+            class="btn-pro-edit"
+            :class="{ active: showConstraintGuides }"
+            title="透视空间约束规格：实时呈现障碍物避让缓冲带与对齐中轴"
+            @click="showConstraintGuides = !showConstraintGuides"
+          >
+            {{ showConstraintGuides ? '📐 隐藏约束透视' : '📐 显示约束透视' }}
+          </button>
           <button class="btn-pro-edit" title="拖封闭槽位、细改页眉/患者条/折流表" @click="$emit('switch-to-canvas')">
             去 AST 审查（可拖组件）
           </button>
@@ -249,6 +257,17 @@
           ref="canvasRef"
           :style="{ transform: `scale(${zoomScale})`, transformOrigin: 'top center' }"
         >
+          <!-- 空间约束规格与避让禁区可视化透视层 -->
+          <VisualConstraintOverlay
+            :template="reportTemplate"
+            :frames="wizardFrames"
+            :paper-width-mm="reportTemplate.paper_size.width_mm"
+            :paper-height-mm="reportTemplate.paper_size.height_mm"
+            :mm-to-px="3.7795"
+            :zoom-scale="1.0"
+            :visible="showConstraintGuides"
+          />
+
           <!-- 场景 1: A5 血液生化化验单 (双列折流) -->
           <template v-if="currentPreset === 'lis_a5'">
             <header class="report-header" :class="'align-' + headerAlign">
@@ -402,6 +421,7 @@ import AppleSwitch from '../components/common/AppleSwitch.vue'
 import ArchiveModal, { type SavedTemplate } from '../components/common/ArchiveModal.vue'
 import BatchPrintModal from '../components/common/BatchPrintModal.vue'
 import ConstraintInspector from '../components/common/ConstraintInspector.vue'
+import VisualConstraintOverlay from '../components/common/VisualConstraintOverlay.vue'
 import PhysicalRuler from '../components/common/PhysicalRuler.vue'
 import ModelProviderSettings from '../components/common/ModelProviderSettings.vue'
 import SnakingTable, { type LabItem } from '../components/medical/SnakingTable.vue'
@@ -466,10 +486,25 @@ const showSeal = ref(true)
 const showRuler = ref(true)
 const autoCompact = ref(true)
 const showConstraints = ref(false)
+const showConstraintGuides = ref(true)
 
 function onConstraintTemplateUpdate(updated: ReportTemplate) {
   applyTemplate(updated)
 }
+
+const wizardFrames = computed(() => {
+  if (reportTemplate.value.preview_frames && reportTemplate.value.preview_frames.length > 0) {
+    return reportTemplate.value.preview_frames
+  }
+  const laid = layoutTemplateFrames(reportTemplate.value)
+  return laid.frames.map((frame) => ({
+    kind: frame.kind,
+    x_mm: frame.x_mm,
+    y_mm: frame.y_mm,
+    width_mm: frame.width_mm,
+    height_mm: frame.height_mm,
+  }))
+})
 
 const zoomScale = ref(1.0)
 const spoolerBanner = ref('')

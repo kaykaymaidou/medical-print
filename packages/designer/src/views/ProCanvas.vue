@@ -63,6 +63,14 @@
             折流分栏
           </button>
 
+          <button
+            :class="['toggle-guide-btn', { active: showConstraintGuides }]"
+            title="显示约束透视与避让禁区：实时呈现障碍物安全缓冲垫与对齐中轴"
+            @click="showConstraintGuides = !showConstraintGuides"
+          >
+            📐 约束透视
+          </button>
+
         <span class="engine-badge">{{ engineBadge }}</span>
       </div>
 
@@ -168,7 +176,16 @@
               :style="gridOverlayStyle"
             ></div>
 
-            <!-- 折流分栏改到表格槽位上拖动，不再画一条固定 105mm 纸心线 -->
+            <!-- 空间约束规格与避让禁区可视化透视层 -->
+            <VisualConstraintOverlay
+              :template="reportTemplate"
+              :frames="canvasFrames"
+              :paper-width-mm="paperWidthMm"
+              :paper-height-mm="paperHeightMm"
+              :mm-to-px="mmToPx"
+              :zoom-scale="zoomScale"
+              :visible="showConstraintGuides"
+            />
 
             <!-- 画布中所有元素 -->
             <div
@@ -741,6 +758,7 @@ import PacsAdjustModal from '../components/medical/PacsAdjustModal.vue'
 import ArchiveModal from '../components/common/ArchiveModal.vue'
 import BatchPrintModal from '../components/common/BatchPrintModal.vue'
 import ConstraintInspector from '../components/common/ConstraintInspector.vue'
+import VisualConstraintOverlay from '../components/common/VisualConstraintOverlay.vue'
 import {
   CANVAS_TO_AST_KIND,
   CLOSED_TOOLBOX,
@@ -795,6 +813,20 @@ const currentPaperKey = ref<keyof typeof paperPresets>('a5_landscape')
 const zoomScale = ref(1.0)
 const snapGridMm = ref(1) // 0 = 无吸附, 1 = 1mm, 5 = 5mm
 const showSnakingGuide = ref(true)
+const showConstraintGuides = ref(true)
+
+const canvasFrames = computed(() => {
+  return elements.value.map((el) => {
+    const kind = isClosedCanvasType(el.type) ? CANVAS_TO_AST_KIND[el.type] : el.type
+    return {
+      kind,
+      x_mm: el.x,
+      y_mm: el.y,
+      width_mm: el.width,
+      height_mm: el.height,
+    }
+  })
+})
 
 const cursorX = ref(0)
 const cursorY = ref(0)
