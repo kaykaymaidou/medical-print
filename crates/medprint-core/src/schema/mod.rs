@@ -1,4 +1,5 @@
-//! 报告单模板与数据 AST 结构定义 (Report Template Schema)
+pub mod constraint;
+pub use constraint::*;
 
 use crate::units::{Margins, PhysicalLength, PhysicalSize};
 use serde::{Deserialize, Serialize};
@@ -107,6 +108,28 @@ pub enum MedicalReportType {
     TegThromboelastogram,   // 血栓弹力图
 }
 
+/// 页眉横排对齐。缺省居中，由模板参数决定，不是写死在渲染器里。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum HeaderAlign {
+    Left,
+    #[default]
+    Center,
+    Right,
+}
+
+/// 患者条上的一个可开关字段（词表由产品目录约束，顺序由模板决定）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PatientField {
+    pub key: String,
+    pub label: String,
+    pub preview_value: String,
+}
+
+fn default_true() -> bool {
+    true
+}
+
 /// 模板元素节点枚举
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ReportElement {
@@ -114,8 +137,23 @@ pub enum ReportElement {
         hospital_name: String,
         sub_title: String,
         report_title: String,
+        #[serde(default)]
+        align: HeaderAlign,
+        #[serde(default)]
+        logo_data_url: Option<String>,
+        #[serde(default)]
+        show_report_no: bool,
+        #[serde(default)]
+        report_no_label: String,
+        #[serde(default)]
+        report_no_preview: String,
     },
-    PatientBanner,
+    PatientBanner {
+        #[serde(default = "default_true")]
+        include_barcode: bool,
+        #[serde(default)]
+        fields: Vec<PatientField>,
+    },
     /// A5 横向双列折流化验单表格
     SnakingTable {
         columns_count: usize, // 默认为 2

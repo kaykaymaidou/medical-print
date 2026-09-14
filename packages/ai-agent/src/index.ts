@@ -1,2 +1,3 @@
 export * from './tools.js'
 export * from './agent.js'
+export * from './provider.js'

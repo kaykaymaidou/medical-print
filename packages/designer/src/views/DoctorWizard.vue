@@ -4,43 +4,62 @@
     <aside class="apple-sidebar">
       <div class="sidebar-header">
         <div class="title-row">
-          <span class="icon">🩺</span>
-          <h2>临床向导模式</h2>
+          <h2>临床向导</h2>
         </div>
-        <p class="subtitle">无需繁复坐标计算，勾选字段，即时交付高精度物理单据</p>
+        <p class="subtitle">意图生成封闭 AST；页眉/患者字段可在此改。需要拖槽位排序时进 AST 审查。</p>
       </div>
 
       <!-- 🤖 DeepSeek AI 智能助理卡片 -->
       <div class="apple-card ai-card">
         <div class="card-header">
           <div class="header-left">
-            <span class="ai-sparkle">✨</span>
-            <span class="card-title">DeepSeek 临床排版智能体</span>
+            <span class="ai-sparkle" aria-hidden="true"></span>
+            <span class="card-title">临床排版智能体</span>
           </div>
-          <span class="pill-badge">AI 智能体就绪</span>
+          <span :class="['pill-badge', `pill-${providerKind}`]">{{ providerLabel }}</span>
         </div>
-        <p class="ai-speech">{{ aiReply || '您好！我是接入 DeepSeek Harness 的医疗排版助理。输入临床诉求，我将为您自主规划排版并计算公式。' }}</p>
+        <ModelProviderSettings v-model="providerSettings" />
+        <p :class="['ai-speech', { 'is-error': !!aiError, 'is-busy': aiBusy }]">{{ aiSpeech }}</p>
+        <div
+          class="ai-dropzone"
+          :class="{ 'has-image': !!pastedImageUrl, dragging: imageDragging }"
+          @dragover.prevent="imageDragging = true"
+          @dragleave.prevent="imageDragging = false"
+          @drop.prevent="onImageDrop"
+        >
+          <img v-if="pastedImageUrl" :src="pastedImageUrl" alt="待识别单据" class="paste-thumb" />
+          <div class="drop-copy">
+            <span v-if="pastedImageUrl">已附单据图，发送后走识图 → AST</span>
+            <span v-else>Ctrl+V 或拖入化验单图片（视觉模型可识别表格）</span>
+            <label class="link-btn">
+              {{ pastedImageUrl ? '更换' : '选取图片' }}
+              <input type="file" accept="image/*" hidden @change="onPickImage" />
+            </label>
+            <button v-if="pastedImageUrl" type="button" class="link-btn" @click="clearPastedImage">移除</button>
+          </div>
+        </div>
         <div class="ai-input-row">
           <input
             v-model="aiPrompt"
             type="text"
-            placeholder="对 AI 说：将此单排为A5横向双列并紧凑至1页..."
+            :disabled="aiBusy"
+            placeholder="对 AI 说意图：A5双列生化 / 超声PACS / 处方 / 合规审查..."
             @keyup.enter="handleAiAsk"
           />
-          <button class="btn-ai-send" @click="handleAiAsk">发送</button>
+          <button class="btn-ai-send" :disabled="aiBusy" @click="handleAiAsk">{{ aiBusy ? '…' : '发送' }}</button>
         </div>
         <div class="ai-quick-tags">
-          <button class="tag-btn" @click="quickAsk('将此单排为A5横向双列并紧凑至1页')">⚡ A5双列紧凑</button>
-          <button class="tag-btn" @click="quickAsk('切换为超声PACS双图图文报告')">⚡ 超声PACS</button>
-          <button class="tag-btn" @click="quickAsk('切换为门急诊规范处方笺')">⚡ 规范处方</button>
-          <button class="tag-btn" @click="quickAsk('审查当前单据医疗法规合规性')">⚡ 合规审查</button>
-          <button class="tag-btn" @click="quickAsk('一键静默打印并监听出纸')">⚡ 静默出纸</button>
+          <button class="tag-btn" @click="quickAsk('将此单排为A5横向双列并紧凑至1页')">A5 双列紧凑</button>
+          <button class="tag-btn" @click="quickAsk('切换为超声PACS双图图文报告')">超声 PACS</button>
+          <button class="tag-btn" @click="quickAsk('切换为门急诊规范处方笺')">规范处方</button>
+          <button class="tag-btn" @click="quickAsk('审查当前单据医疗法规合规性')">合规审查</button>
+          <button class="tag-btn" @click="quickAsk('一键静默打印并监听出纸')">静默出纸</button>
         </div>
       </div>
 
       <!-- 1. 临床单据类别选择 (4大真实场景) -->
       <div class="apple-card">
-        <label class="group-label">1. 临床单据类别 (全场景切换)</label>
+        <label class="group-label">单据类别</label>
         <div class="segmented-control">
           <button
             v-for="preset in presets"
@@ -53,26 +72,80 @@
         </div>
       </div>
 
-      <!-- 2. 机构与表头设置 -->
+      <!-- 2. 机构与页眉（可改对齐 / 院徽 / 报告单号） -->
       <div class="apple-card">
-        <label class="group-label">2. 机构信息与纸张规范</label>
+        <label class="group-label">页眉与机构</label>
+        <p class="card-hint">标题不必居中：可选左中右，可加院徽和报告单号。细排版也可进 AST 审查拖槽位。</p>
+        <div class="align-pills">
+          <button
+            v-for="opt in alignOptions"
+            :key="opt.id"
+            type="button"
+            class="align-pill"
+            :class="{ active: headerAlign === opt.id }"
+            @click="setHeaderAlign(opt.id)"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
         <div class="field-row">
           <span class="field-name">医院名称</span>
-          <input v-model="hospitalName" type="text" class="apple-input" />
+          <input v-model="hospitalName" type="text" class="apple-input" @change="syncHeaderFromWizard" />
         </div>
         <div class="field-row">
           <span class="field-name">报告标题</span>
-          <input v-model="reportTitle" type="text" class="apple-input" />
+          <input v-model="reportTitle" type="text" class="apple-input" @change="syncHeaderFromWizard" />
         </div>
         <div class="field-row">
           <span class="field-name">科室咨询</span>
           <input v-model="deptPhone" type="text" class="apple-input" />
         </div>
+        <div class="field-row">
+          <span class="field-name">院徽</span>
+          <div class="logo-actions">
+            <input type="file" accept="image/*" class="apple-input file-input" @change="onWizardLogoFile" />
+            <button v-if="headerLogo" type="button" class="mini-btn" @click="clearWizardLogo">移除</button>
+          </div>
+        </div>
+        <div class="switch-list compact">
+          <AppleSwitch v-model="showReportNoLocal" label="显示报告单编号" />
+        </div>
+        <template v-if="showReportNoLocal">
+          <div class="field-row">
+            <span class="field-name">编号标签</span>
+            <input v-model="reportNoLabelLocal" type="text" class="apple-input" @change="syncHeaderFromWizard" />
+          </div>
+          <div class="field-row">
+            <span class="field-name">预览编号</span>
+            <input v-model="reportNoPreviewLocal" type="text" class="apple-input" @change="syncHeaderFromWizard" />
+          </div>
+        </template>
+      </div>
+
+      <!-- 患者信息字段目录 -->
+      <div class="apple-card">
+        <label class="group-label">患者信息字段</label>
+        <p class="card-hint">从临床目录增删改排序；可加自定义字段。不是开放文本控件。</p>
+        <div class="patient-field-list">
+          <div v-for="(field, i) in editablePatientFields" :key="field.key + '-' + i" class="patient-field-row">
+            <button type="button" class="mini-btn" :disabled="i === 0" @click="moveWizardPatientField(i, -1)">↑</button>
+            <button type="button" class="mini-btn" :disabled="i === editablePatientFields.length - 1" @click="moveWizardPatientField(i, 1)">↓</button>
+            <input class="apple-input tight" :value="field.label" @change="onWizardPatientLabel(i, $event)" />
+            <input class="apple-input" :value="field.preview_value" @change="onWizardPatientValue(i, $event)" />
+            <button type="button" class="mini-btn danger" @click="removeWizardPatientField(i)">×</button>
+          </div>
+        </div>
+        <div class="field-add-row">
+          <select v-model="pendingPatientKey" class="apple-input">
+            <option v-for="opt in unusedWizardPatientKeys" :key="opt.key" :value="opt.key">{{ opt.label }}</option>
+          </select>
+          <button type="button" class="mini-btn primary" @click="addWizardPatientField">加入</button>
+        </div>
       </div>
 
       <!-- 3. 临床模块开关 (AppleSwitch) -->
       <div class="apple-card">
-        <label class="group-label">3. 医疗合规与功能模块</label>
+        <label class="group-label">合规模块</label>
         <div class="switch-list">
           <AppleSwitch v-model="showBarcode" label="采血管条形码 (Code128 纯矢量)" />
           <AppleSwitch v-model="showAbnormalFlags" label="异常值自动评估 (↑/↓/危急值标红)" />
@@ -84,35 +157,41 @@
 
       <!-- 4. 离线内网与文件导入导出闭环 -->
       <div class="apple-card file-ops-card">
-        <label class="group-label">4. 医院内网文件与离线存储</label>
+        <label class="group-label">档案</label>
         <div class="ops-grid">
-          <button class="ops-btn" @click="saveToLocalArchive">
-            💾 保存至内网档案库 (SQLite/文件)
-          </button>
-          <button class="ops-btn" @click="showArchiveModal = true">
-            🗄️ 浏览内网本地库 ({{ savedTemplates.length }})
-          </button>
-          <button class="ops-btn" @click="exportTemplateFile">
-            📤 导出模板文件 (.medprint.json)
-          </button>
+          <button class="ops-btn" @click="saveToLocalArchive">保存至档案库</button>
+          <button class="ops-btn" @click="showArchiveModal = true">浏览本地库（{{ savedTemplates.length }}）</button>
+          <button class="ops-btn" @click="exportTemplateFile">导出 .medprint.json</button>
           <label class="ops-btn file-picker-label">
-            📥 导入外部模板文件
+            导入外部模板
             <input type="file" accept=".json,.medprint" @change="importTemplateFile" style="display: none;" />
           </label>
         </div>
       </div>
 
+      <!-- 5. 空间几何约束规格 (声明式锚定与避让折流) -->
+      <div class="apple-card">
+        <div class="card-header" style="cursor: pointer" @click="showConstraints = !showConstraints">
+          <div class="header-left">
+            <span class="card-title">📐 空间约束规格</span>
+          </div>
+          <span class="pill-badge pill-tools">{{ showConstraints ? '收起' : '展开配置' }}</span>
+        </div>
+        <p class="card-hint">
+          声明式锚定与避让折流（如 Logo 居中对齐、图表避让折流、硬单页锁定），物理几何引擎自动求解零碰撞绝对坐标。
+        </p>
+        <ConstraintInspector
+          v-if="showConstraints"
+          :model-value="reportTemplate"
+          @update:model-value="onConstraintTemplateUpdate"
+        />
+      </div>
+
       <!-- 底部动作按钮 -->
       <div class="sidebar-footer">
-        <button class="btn-primary" @click="handlePrint">
-          🖨️ 发送静默打印 (硬件双向监听)
-        </button>
-        <button class="btn-secondary" @click="showBatchModal = true">
-          📑 批量集中打印队列监控 (1~50页)
-        </button>
-        <button class="btn-secondary" @click="handleExportPdf">
-          📄 导出 300 DPI 纯矢量 PDF
-        </button>
+        <button class="btn-primary" @click="handlePrint">静默打印</button>
+        <button class="btn-secondary" @click="showBatchModal = true">批量队列</button>
+        <button class="btn-secondary" @click="handleExportPdf">导出矢量 PDF</button>
       </div>
     </aside>
 
@@ -126,8 +205,8 @@
           <span class="badge-green">纸张预算：1 / 1 页 (紧凑受控)</span>
         </div>
         <div class="toolbar-right">
-          <button class="btn-pro-edit" title="将当前单据迁移至极客画布自由调整" @click="$emit('switch-to-canvas')">
-            🛠️ 极客画布精修
+          <button class="btn-pro-edit" title="拖封闭槽位、细改页眉/患者条/折流表" @click="$emit('switch-to-canvas')">
+            去 AST 审查（可拖组件）
           </button>
           <span class="zoom-label">缩放:</span>
           <select v-model="zoomScale" class="zoom-select">
@@ -141,7 +220,7 @@
       </div>
 
       <!-- 打印机状态通知横幅 -->
-      <transition name="fade">
+      <transition name="apple-fade">
         <div v-if="spoolerBanner" class="spooler-banner">
           <div class="banner-content">
             <span class="pulse-dot"></span>
@@ -172,9 +251,18 @@
         >
           <!-- 场景 1: A5 血液生化化验单 (双列折流) -->
           <template v-if="currentPreset === 'lis_a5'">
-            <header class="report-header">
-              <h1 class="hospital-name">{{ hospitalName }}</h1>
-              <h2 class="sheet-title">{{ reportTitle }}</h2>
+            <header class="report-header" :class="'align-' + headerAlign">
+              <div class="header-main">
+                <img v-if="headerLogo" class="hospital-logo" :src="headerLogo" alt="" />
+                <div>
+                  <h1 class="hospital-name">{{ hospitalName }}</h1>
+                  <h2 class="sheet-title">{{ reportTitle }}</h2>
+                </div>
+                <div v-if="showReportNo" class="report-no">
+                  <span>{{ reportNoLabel }}</span>
+                  <strong>{{ reportNoPreview }}</strong>
+                </div>
+              </div>
               <div class="dept-bar">
                 <span>送检科室：医学检验科 (LIS)</span>
                 <span>送检标本：静脉全血</span>
@@ -183,12 +271,9 @@
             </header>
 
             <section class="patient-banner">
-              <span><strong>姓名：</strong>张三</span>
-              <span><strong>性别：</strong>男</span>
-              <span><strong>年龄：</strong>45岁</span>
-              <span><strong>门诊号：</strong>MZ2026090801</span>
-              <span><strong>科室：</strong>心血管内科</span>
-              <span><strong>床号：</strong>12床</span>
+              <span v-for="field in previewPatientFields" :key="field.key">
+                <strong>{{ field.label }}：</strong>{{ field.preview_value }}
+              </span>
               <span v-if="showBarcode" class="barcode-tag">||| ||||| ||||||| 019283</span>
             </section>
 
@@ -215,9 +300,18 @@
 
           <!-- 场景 2: 血栓弹力图专项报告 (TEG 波形 + 凝血参数) -->
           <template v-else-if="currentPreset === 'teg'">
-            <header class="report-header">
-              <h1 class="hospital-name">{{ hospitalName }}</h1>
-              <h2 class="sheet-title">{{ reportTitle }}</h2>
+            <header class="report-header" :class="'align-' + headerAlign">
+              <div class="header-main">
+                <img v-if="headerLogo" class="hospital-logo" :src="headerLogo" alt="" />
+                <div>
+                  <h1 class="hospital-name">{{ hospitalName }}</h1>
+                  <h2 class="sheet-title">{{ reportTitle }}</h2>
+                </div>
+                <div v-if="showReportNo" class="report-no">
+                  <span>{{ reportNoLabel }}</span>
+                  <strong>{{ reportNoPreview }}</strong>
+                </div>
+              </div>
               <div class="dept-bar">
                 <span>送检科室：急诊重症监护室 (ICU)</span>
                 <span>送检标本：枸橼酸抗凝全血</span>
@@ -226,12 +320,9 @@
             </header>
 
             <section class="patient-banner">
-              <span><strong>姓名：</strong>赵六</span>
-              <span><strong>性别：</strong>男</span>
-              <span><strong>年龄：</strong>61岁</span>
-              <span><strong>住院号：</strong>ZY2026090881</span>
-              <span><strong>科室：</strong>ICU重症病区</span>
-              <span><strong>床号：</strong>02床</span>
+              <span v-for="field in previewPatientFields" :key="field.key">
+                <strong>{{ field.label }}：</strong>{{ field.preview_value }}
+              </span>
               <span v-if="showBarcode" class="barcode-tag">||| ||||| ||||||| 889102</span>
             </section>
 
@@ -306,17 +397,53 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppleSwitch from '../components/common/AppleSwitch.vue'
 import ArchiveModal, { type SavedTemplate } from '../components/common/ArchiveModal.vue'
 import BatchPrintModal from '../components/common/BatchPrintModal.vue'
+import ConstraintInspector from '../components/common/ConstraintInspector.vue'
 import PhysicalRuler from '../components/common/PhysicalRuler.vue'
+import ModelProviderSettings from '../components/common/ModelProviderSettings.vue'
 import SnakingTable, { type LabItem } from '../components/medical/SnakingTable.vue'
 import SignatureChain from '../components/medical/SignatureChain.vue'
 import HospitalSeal from '../components/medical/HospitalSeal.vue'
 import TegChart from '../components/medical/TegChart.vue'
 import PacsReportView from '../components/medical/PacsReportView.vue'
 import PrescriptionView from '../components/medical/PrescriptionView.vue'
+import {
+  addPatientField,
+  canDispatchPrint,
+  createPresetTemplate,
+  defaultPatientFields,
+  findElement,
+  formatViolations,
+  hasElement,
+  initLayoutEngine,
+  insertUniqueSlot,
+  layoutTemplateFrames,
+  loadModelSettings,
+  movePatientField,
+  patchSlotParams,
+  PATIENT_FIELD_CATALOG,
+  providerStatus,
+  providerStatusLabel,
+  removePatientField,
+  removeSlot,
+  runWizardAgent,
+  saveModelSettings,
+  updatePatientField,
+  validateReportTemplate,
+  REPORT_TYPE_TO_WIZARD_PRESET,
+  type LabItemRow,
+  type ModelProviderSettings as ModelSettings,
+  type PatientFieldKey,
+  type PreviewFrame,
+  type ReportElementKind,
+  type ReportTemplate,
+  type WizardPresetId,
+} from '../domain'
+
+type HeaderAlign = 'left' | 'center' | 'right'
 
 defineEmits<{
   (e: 'switch-to-canvas'): void
@@ -338,6 +465,11 @@ const showAbnormalFlags = ref(true)
 const showSeal = ref(true)
 const showRuler = ref(true)
 const autoCompact = ref(true)
+const showConstraints = ref(false)
+
+function onConstraintTemplateUpdate(updated: ReportTemplate) {
+  applyTemplate(updated)
+}
 
 const zoomScale = ref(1.0)
 const spoolerBanner = ref('')
@@ -361,51 +493,373 @@ function handleMouseLeave() {
   cursorY.value = -1
 }
 
-// DeepSeek AI 状态
+// AI 产出封闭 AST（源真相），Vue 预览只是投影
 const aiPrompt = ref('')
 const aiReply = ref('')
+const aiError = ref('')
+const aiBusy = ref(false)
+const pastedImageUrl = ref('')
+const imageDragging = ref(false)
+const providerSettings = ref<ModelSettings>(loadModelSettings())
+const reportTemplate = ref<ReportTemplate>(createPresetTemplate('lis_a5'))
+const headerAst = computed(() => findElement(reportTemplate.value, 'HospitalHeader'))
+const headerAlign = computed(() => headerAst.value?.align || 'center')
+const headerLogo = computed(() => headerAst.value?.logo_data_url || '')
+const showReportNo = computed(() => !!headerAst.value?.show_report_no)
+const reportNoLabel = computed(() => headerAst.value?.report_no_label || '报告单号')
+const reportNoPreview = computed(() => headerAst.value?.report_no_preview || 'BG20260908001')
+const previewPatientFields = computed(() => {
+  const banner = findElement(reportTemplate.value, 'PatientBanner')
+  return banner?.fields && banner.fields.length > 0 ? banner.fields : defaultPatientFields()
+})
 
-function handleAiAsk() {
-  if (!aiPrompt.value.trim()) return
-  const q = aiPrompt.value.trim()
-  aiPrompt.value = ''
+const alignOptions: Array<{ id: HeaderAlign; label: string }> = [
+  { id: 'left', label: '左对齐' },
+  { id: 'center', label: '居中' },
+  { id: 'right', label: '右对齐' },
+]
 
-  if (q.includes('处方')) {
-    selectPreset('prescription')
-    aiReply.value = `[DeepSeek AI 智能体] 🤖 调用 Tool: create_medical_template\n已为您合成【门急诊规范处方笺】AST，注入 Rp 药品组、用药频次与处方专用红章。`
-  } else if (q.includes('超声') || q.includes('PACS')) {
-    selectPreset('pacs')
-    aiReply.value = `[DeepSeek AI 智能体] 🤖 调用 Tool: create_medical_template\n已为您合成【PACS 超声双图图文报告】AST，包含高保真声束影像网格与超声诊断结论。`
-  } else if (q.includes('血栓') || q.includes('TEG')) {
-    selectPreset('teg')
-    aiReply.value = `[DeepSeek AI 智能体] 🤖 调用 Tool: create_medical_template\n已为您合成【血栓弹力图 (TEG) 专项报告】，实时拟合 R、K、α角、MA 纺锤凝血波形。`
-  } else if (q.includes('合规') || q.includes('审查') || q.includes('法规')) {
-    aiReply.value = `[DeepSeek AI 智能体] 🤖 调用 Tool: verify_compliance\n✅ 医疗法规审查结果：三级医师签名链 (采样/操作/审核) 完整，采血管条形码正常，防伪红章与24小时复核免责声明均合规，符合国家卫健委《医疗机构临床实验室管理办法》。`
-  } else if (q.includes('打印') || q.includes('出纸')) {
-    handlePrint()
-    aiReply.value = `[DeepSeek AI 智能体] 🤖 调用 Tool: dispatch_silent_print\n已向本地 medprint-spooler 守护进程派发静默打印，并启动 Spooler 硬件真实出纸监听！`
+const showReportNoLocal = ref(true)
+const reportNoLabelLocal = ref('报告单号')
+const reportNoPreviewLocal = ref('BG20260908001')
+const pendingPatientKey = ref<PatientFieldKey>('report_no')
+
+const editablePatientFields = computed(() => previewPatientFields.value)
+
+const unusedWizardPatientKeys = computed(() => {
+  const used = new Set(editablePatientFields.value.map((f) => f.key))
+  const keys = Object.keys(PATIENT_FIELD_CATALOG) as Array<Exclude<PatientFieldKey, 'custom'>>
+  const leftover: Array<{ key: PatientFieldKey; label: string }> = keys
+    .filter((key) => !used.has(key))
+    .map((key) => ({ key, label: PATIENT_FIELD_CATALOG[key].label }))
+  leftover.push({ key: 'custom', label: '自定义字段' })
+  return leftover
+})
+
+function syncHeaderFromWizard() {
+  reportTemplate.value = patchSlotParams(reportTemplate.value, 'HospitalHeader', {
+    hospitalName: hospitalName.value,
+    reportTitle: reportTitle.value,
+    align: headerAlign.value,
+    logoDataUrl: headerLogo.value || '',
+    showReportNo: showReportNoLocal.value,
+    reportNoLabel: reportNoLabelLocal.value,
+    reportNoPreview: reportNoPreviewLocal.value,
+  })
+}
+
+function setHeaderAlign(align: HeaderAlign) {
+  reportTemplate.value = patchSlotParams(reportTemplate.value, 'HospitalHeader', {
+    hospitalName: hospitalName.value,
+    reportTitle: reportTitle.value,
+    align,
+    logoDataUrl: headerLogo.value || '',
+    showReportNo: showReportNoLocal.value,
+    reportNoLabel: reportNoLabelLocal.value,
+    reportNoPreview: reportNoPreviewLocal.value,
+  })
+}
+
+function onWizardLogoFile(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    reportTemplate.value = patchSlotParams(reportTemplate.value, 'HospitalHeader', {
+      hospitalName: hospitalName.value,
+      reportTitle: reportTitle.value,
+      align: headerAlign.value,
+      logoDataUrl: String(reader.result || ''),
+      showReportNo: showReportNoLocal.value,
+      reportNoLabel: reportNoLabelLocal.value,
+      reportNoPreview: reportNoPreviewLocal.value,
+    })
+  }
+  reader.readAsDataURL(file)
+}
+
+function clearWizardLogo() {
+  reportTemplate.value = patchSlotParams(reportTemplate.value, 'HospitalHeader', {
+    hospitalName: hospitalName.value,
+    reportTitle: reportTitle.value,
+    align: headerAlign.value,
+    logoDataUrl: '',
+    showReportNo: showReportNoLocal.value,
+    reportNoLabel: reportNoLabelLocal.value,
+    reportNoPreview: reportNoPreviewLocal.value,
+  })
+}
+
+function addWizardPatientField() {
+  reportTemplate.value = addPatientField(reportTemplate.value, pendingPatientKey.value)
+  const next = unusedWizardPatientKeys.value.find((opt) => opt.key !== pendingPatientKey.value)
+  pendingPatientKey.value = next?.key || 'custom'
+}
+
+function removeWizardPatientField(index: number) {
+  reportTemplate.value = removePatientField(reportTemplate.value, index)
+}
+
+function moveWizardPatientField(index: number, delta: number) {
+  reportTemplate.value = movePatientField(reportTemplate.value, index, delta)
+}
+
+function onWizardPatientLabel(index: number, event: Event) {
+  reportTemplate.value = updatePatientField(reportTemplate.value, index, {
+    label: (event.target as HTMLInputElement).value,
+  })
+}
+
+function onWizardPatientValue(index: number, event: Event) {
+  reportTemplate.value = updatePatientField(reportTemplate.value, index, {
+    preview_value: (event.target as HTMLInputElement).value,
+  })
+}
+
+watch(showReportNoLocal, () => syncHeaderFromWizard())
+watch(showBarcode, (on) => {
+  reportTemplate.value = patchSlotParams(reportTemplate.value, 'PatientBanner', {
+    includeBarcode: on,
+    fields: editablePatientFields.value,
+  })
+})
+watch(showSeal, (on) => {
+  if (on && !hasElement(reportTemplate.value, 'Seal')) {
+    reportTemplate.value = insertUniqueSlot(reportTemplate.value, 'Seal')
+  } else if (!on) {
+    reportTemplate.value = removeSlot(reportTemplate.value, 'Seal')
+  }
+})
+
+const providerKind = computed(() => providerStatus(providerSettings.value))
+const providerLabel = computed(() => providerStatusLabel(providerSettings.value))
+const aiSpeech = computed(() => {
+  if (aiBusy.value) return '正在调用模型（工具 → 封闭 AST）…'
+  if (aiReply.value) return aiReply.value
+  return '输入临床意图或粘贴化验单图片。我将只生成封闭 ReportTemplate AST（不是自由画布坐标），再交给引擎折流排版。'
+})
+
+watch(
+  providerSettings,
+  (value) => {
+    saveModelSettings(value)
+  },
+  { deep: true },
+)
+
+function toLabRows(items: LabItem[]): LabItemRow[] {
+  return items.map((item) => ({
+    ...item,
+    is_critical: !!item.is_critical,
+  }))
+}
+
+function applyTemplate(template: ReportTemplate) {
+  const laid = layoutTemplateFrames(template)
+  const withFrames: ReportTemplate = {
+    ...template,
+    preview_frames: laid.frames.map(
+      (frame): PreviewFrame => ({
+        element_index: frame.element_index,
+        kind: frame.kind as ReportElementKind,
+        x_mm: frame.x_mm,
+        y_mm: frame.y_mm,
+        width_mm: frame.width_mm,
+        height_mm: frame.height_mm,
+      }),
+    ),
+  }
+  reportTemplate.value = withFrames
+  const header = findElement(withFrames, 'HospitalHeader')
+  if (header) {
+    hospitalName.value = header.hospital_name
+    reportTitle.value = header.report_title
+    showReportNoLocal.value = !!header.show_report_no
+    reportNoLabelLocal.value = header.report_no_label || '报告单号'
+    reportNoPreviewLocal.value = header.report_no_preview || 'BG20260908001'
+  }
+  const mapped = REPORT_TYPE_TO_WIZARD_PRESET[withFrames.report_type]
+  if (mapped) currentPreset.value = mapped
+  const banner = findElement(withFrames, 'PatientBanner')
+  showBarcode.value = banner?.include_barcode ?? true
+  showSeal.value = hasElement(withFrames, 'Seal')
+  const table = findElement(withFrames, 'SnakingTable')
+  if (table && table.items.length > 0) {
+    sampleItems.value = table.items
+  }
+}
+
+function wizardToTemplate(): ReportTemplate {
+  // 在现有 AST 上覆写，保留院徽/对齐/报告单号/患者字段等自定义，避免整表重建冲掉
+  let next = reportTemplate.value
+  next = patchSlotParams(next, 'HospitalHeader', {
+    hospitalName: hospitalName.value,
+    reportTitle: reportTitle.value,
+    align: headerAlign.value,
+    logoDataUrl: headerLogo.value || '',
+    showReportNo: showReportNoLocal.value,
+    reportNoLabel: reportNoLabelLocal.value,
+    reportNoPreview: reportNoPreviewLocal.value,
+  })
+  next = patchSlotParams(next, 'PatientBanner', {
+    includeBarcode: showBarcode.value,
+    fields: editablePatientFields.value,
+  })
+  if (showSeal.value && !hasElement(next, 'Seal')) {
+    next = insertUniqueSlot(next, 'Seal')
+  } else if (!showSeal.value && hasElement(next, 'Seal')) {
+    next = removeSlot(next, 'Seal')
+  }
+  const table = findElement(next, 'SnakingTable')
+  if (table && (currentPreset.value === 'lis_a5' || currentPreset.value === 'teg')) {
+    const items = toLabRows(currentPreset.value === 'teg' ? tegItems.value : sampleItems.value)
+    next = {
+      ...next,
+      name: reportTitle.value,
+      elements: next.elements.map((el) =>
+        el.kind === 'SnakingTable' ? { ...el, items, auto_compaction: autoCompact.value } : el,
+      ),
+    }
   } else {
-    selectPreset('lis_a5')
-    aiReply.value = `[DeepSeek AI 智能体 正在执行: "${q}"]\n🤖 调用 Tool: optimize_page_compaction 与 create_medical_template\n已将 30 项化验指标按 A5 横向双列平衡折流排版，行高微调为 4.8mm，100% 紧凑在单页内！`
+    next = { ...next, name: reportTitle.value }
+  }
+  return next
+}
+
+async function handleAiAsk() {
+  if (aiBusy.value) return
+  const q = aiPrompt.value.trim()
+  if (!q && !pastedImageUrl.value) return
+  aiPrompt.value = ''
+  aiError.value = ''
+  aiBusy.value = true
+
+  try {
+    const compiled = await runWizardAgent({
+      prompt: q,
+      imageDataUrl: pastedImageUrl.value || undefined,
+      settings: providerSettings.value,
+      ctx: {
+        hospitalName: hospitalName.value,
+        reportTitle: reportTitle.value,
+        includeBarcode: showBarcode.value,
+        includeSeal: showSeal.value,
+        items: toLabRows(sampleItems.value),
+        currentTemplate: wizardToTemplate(),
+      },
+    })
+
+    aiReply.value = compiled.reply
+    aiError.value = compiled.error || ''
+
+    const skipApply = q.includes('打印') || q.includes('出纸') || q.includes('合规') || q.includes('审查') || q.includes('法规')
+    if (!skipApply) {
+      applyTemplate(compiled.template)
+    } else {
+      reportTemplate.value = compiled.template
+    }
+
+    if (q.includes('打印') || q.includes('出纸')) {
+      if (compiled.printBlocked) {
+        spoolerBanner.value = '打印已拦截：模板未通过合规约束（缺少签名链或条码）。'
+        return
+      }
+      handlePrint()
+    }
+  } catch (err) {
+    aiError.value = 'agent-failed'
+    aiReply.value = `智能体调用失败：${err instanceof Error ? err.message : String(err)}`
+  } finally {
+    aiBusy.value = false
   }
 }
 
 function quickAsk(text: string) {
   aiPrompt.value = text
-  handleAiAsk()
+  void handleAiAsk()
+}
+
+async function fileToVisionDataUrl(file: File): Promise<string> {
+  try {
+    const bitmap = await createImageBitmap(file)
+    const max = 1280
+    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      bitmap.close()
+      return await blobToDataUrl(file)
+    }
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close()
+    return canvas.toDataURL('image/jpeg', 0.78)
+  } catch {
+    return blobToDataUrl(file)
+  }
+}
+
+function blobToDataUrl(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
+
+async function attachImageFile(file: File) {
+  if (!file.type.startsWith('image/')) return
+  pastedImageUrl.value = await fileToVisionDataUrl(file)
+  imageDragging.value = false
+  aiReply.value = '已附上单据图片。发送后将尝试视觉识别并写入 SnakingTable / 对应槽位。'
+  aiError.value = ''
+}
+
+function clearPastedImage() {
+  pastedImageUrl.value = ''
+}
+
+async function onImageDrop(e: DragEvent) {
+  imageDragging.value = false
+  const file = e.dataTransfer?.files?.[0]
+  if (file) await attachImageFile(file)
+}
+
+function onPickImage(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (file) void attachImageFile(file)
+}
+
+function onWindowPaste(e: ClipboardEvent) {
+  const items = e.clipboardData?.items
+  if (!items) return
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile()
+      if (file) {
+        e.preventDefault()
+        void attachImageFile(file)
+      }
+      return
+    }
+  }
 }
 
 function selectPreset(id: string) {
-  currentPreset.value = id
-  if (id === 'teg') {
-    reportTitle.value = '血栓弹力图 (TEG) 凝血功能专项报告单'
-  } else if (id === 'pacs') {
-    reportTitle.value = '超声医学科检查报告单'
-  } else if (id === 'prescription') {
-    reportTitle.value = '门 急 诊 处 方 笺'
-  } else {
-    reportTitle.value = '临床血液生化检验报告单 (A5横向双列)'
-  }
+  const preset = id as WizardPresetId
+  currentPreset.value = preset
+  applyTemplate(
+    createPresetTemplate(preset, {
+      hospitalName: hospitalName.value,
+      includeBarcode: showBarcode.value,
+      includeSeal: showSeal.value,
+      items: preset === 'lis_a5' ? toLabRows(sampleItems.value) : undefined,
+    }),
+  )
 }
 
 // 模拟 30 项生化化验数据 (A5 横向双列平衡)
@@ -456,7 +910,10 @@ const tegItems = ref<LabItem[]>([
 // 离线内网本地档案存储
 const savedTemplates = ref<SavedTemplate[]>([])
 
-onMounted(() => {
+onMounted(async () => {
+  await initLayoutEngine()
+  applyTemplate(reportTemplate.value)
+  window.addEventListener('paste', onWindowPaste)
   const local = localStorage.getItem('medprint_local_templates')
   if (local) {
     try {
@@ -467,6 +924,10 @@ onMounted(() => {
   } else {
     initDefaultTemplates()
   }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('paste', onWindowPaste)
 })
 
 function initDefaultTemplates() {
@@ -503,26 +964,15 @@ function saveTemplatesToStorage() {
   localStorage.setItem('medprint_local_templates', JSON.stringify(savedTemplates.value))
 }
 
-// 1. 导出为 .medprint.json 文件
+// 1. 导出为封闭 ReportTemplate（.medprint.json），禁止把画布坐标当交换格式
 function exportTemplateFile() {
-  const payload = {
-    version: '1.0',
-    app: 'MedPrint',
-    exported_at: new Date().toISOString(),
-    hospitalName: hospitalName.value,
-    reportTitle: reportTitle.value,
-    deptPhone: deptPhone.value,
-    preset: currentPreset.value,
-    showBarcode: showBarcode.value,
-    showAbnormalFlags: showAbnormalFlags.value,
-    showSeal: showSeal.value,
-    items: sampleItems.value,
-  }
+  const payload = wizardToTemplate()
+  reportTemplate.value = payload
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `${reportTitle.value}.medprint.json`
+  a.download = `${payload.name}.medprint.json`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -536,12 +986,17 @@ function importTemplateFile(e: Event) {
   reader.onload = (event) => {
     try {
       const data = JSON.parse(event.target?.result as string)
+      if (data.report_type && Array.isArray(data.elements)) {
+        applyTemplate(data as ReportTemplate)
+        spoolerBanner.value = `已载入封闭 AST 模板：${file.name}`
+        return
+      }
       if (data.hospitalName) hospitalName.value = data.hospitalName
       if (data.reportTitle) reportTitle.value = data.reportTitle
       if (data.deptPhone) deptPhone.value = data.deptPhone
       if (data.preset) selectPreset(data.preset)
       if (data.items) sampleItems.value = data.items
-      spoolerBanner.value = `✓ 已成功载入外部模板文件：${file.name}`
+      spoolerBanner.value = `已载入旧版向导字段文件：${file.name}（已映射为预设，建议重新导出 AST）`
     } catch {
       alert('模板文件格式解析错误，请确认是合法的 .medprint.json 文件！')
     }
@@ -593,7 +1048,14 @@ function handleImportFileFromModal(e: Event) {
 }
 
 function handlePrint() {
-  spoolerBanner.value = `🖨️ [单任务 #1024 硬件双向联动] 状态: [QUEUED] -> [PRINTING(1/1)] -> [JOB_COMPLETED] 物理纸张已脱离出纸口，门诊处方流水号核销完毕！`
+  const template = wizardToTemplate()
+  reportTemplate.value = template
+  const issues = validateReportTemplate(template)
+  if (!canDispatchPrint(issues)) {
+    spoolerBanner.value = `打印已拦截：${formatViolations(issues)}`
+    return
+  }
+  spoolerBanner.value = `打印机作业已提交（模板 ${template.id}）。状态机：QUEUED → PRINTING → JOB_COMPLETED；缺签名/条码已被约束器拦截。`
 }
 
 function handleExportPdf() {
@@ -613,65 +1075,148 @@ function handleExportPdf() {
 <style scoped>
 .apple-workspace {
   display: flex;
-  height: calc(100vh - 52px);
-  background-color: #f5f5f7;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
-  color: #1d1d1f;
+  height: 100%;
+  background: var(--fill);
+  color: var(--label);
   overflow: hidden;
 }
 
-/* Apple 质感左侧控制台 */
 .apple-sidebar {
-  width: 390px;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: saturate(180%) blur(20px);
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-  padding: 20px;
+  width: 380px;
+  flex-shrink: 0;
+  background: var(--glass-heavy);
+  backdrop-filter: saturate(180%) blur(22px);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+  border-right: 1px solid var(--separator);
+  padding: 22px 18px 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   overflow-y: auto;
+}
+.sidebar-header {
+  padding: 2px 4px 6px;
+  animation: apple-rise var(--duration-slow) var(--ease-out) both;
 }
 .sidebar-header .title-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.sidebar-header .icon { font-size: 20px; }
 .sidebar-header h2 {
   margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.4px;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.55px;
 }
 .sidebar-header .subtitle {
   font-size: 12px;
-  color: #86868b;
-  margin: 4px 0 0;
+  color: var(--label-tertiary);
+  margin: 6px 0 0;
+  line-height: 1.45;
 }
 
-/* 统一 Apple 卡片样式 */
 .apple-card {
-  background: white;
-  border-radius: 12px;
+  background: var(--fill-elevated);
+  border-radius: var(--radius-lg);
   padding: 14px 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--separator);
+  animation: apple-rise var(--duration-slow) var(--ease-out) both;
+  transition: transform var(--duration-fast) var(--spring), box-shadow var(--duration) var(--ease-out);
 }
+.apple-sidebar > .apple-card:nth-child(2) { animation-delay: 40ms; }
+.apple-sidebar > .apple-card:nth-child(3) { animation-delay: 80ms; }
+.apple-sidebar > .apple-card:nth-child(4) { animation-delay: 120ms; }
+.apple-sidebar > .apple-card:nth-child(5) { animation-delay: 160ms; }
+.apple-sidebar > .apple-card:nth-child(6) { animation-delay: 200ms; }
 .group-label {
   display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #86868b;
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--label-tertiary);
   margin-bottom: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.02em;
 }
+.card-hint {
+  margin: -2px 0 10px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--label-tertiary);
+}
+.align-pills {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.align-pill {
+  flex: 1;
+  border: 1px solid var(--separator);
+  background: var(--fill-grouped);
+  border-radius: var(--radius-pill);
+  padding: 6px 0;
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--label-secondary);
+  cursor: pointer;
+}
+.align-pill.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+.logo-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 210px;
+}
+.file-input {
+  width: 100%;
+  font-size: 11px;
+}
+.mini-btn {
+  border: 1px solid var(--separator);
+  background: #fff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--label);
+}
+.mini-btn.primary {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+.mini-btn.danger { color: var(--red); }
+.mini-btn:disabled { opacity: 0.4; cursor: default; }
+.patient-field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+  max-height: 180px;
+  overflow: auto;
+}
+.patient-field-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.apple-input.tight { width: 72px; flex-shrink: 0; }
+.field-add-row {
+  display: flex;
+  gap: 6px;
+}
+.field-add-row .apple-input { flex: 1; width: auto; }
+.switch-list.compact { gap: 8px; margin: 8px 0; }
 
-/* AI 卡片特别装饰 */
 .ai-card {
-  background: linear-gradient(135deg, rgba(240, 249, 255, 0.9) 0%, rgba(245, 243, 255, 0.9) 100%);
-  border: 1px solid #bae6fd;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.2)),
+    linear-gradient(135deg, #eef6ff 0%, #f4f0ff 100%);
+  border-color: rgba(0, 113, 227, 0.16);
 }
 .card-header {
   display: flex;
@@ -682,192 +1227,287 @@ function handleExportPdf() {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+.ai-sparkle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.16);
 }
 .card-title {
   font-size: 13px;
-  font-weight: 600;
-  color: #0369a1;
+  font-weight: 650;
+  color: #0b4a7a;
+  letter-spacing: -0.2px;
 }
 .pill-badge {
-  background: #0071e3;
+  background: var(--blue);
   color: white;
   font-size: 10px;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 9999px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+}
+.pill-unconfigured {
+  background: var(--fill-control);
+  color: var(--label-secondary);
+}
+.pill-local {
+  background: var(--green);
+  color: #fff;
+}
+.pill-external {
+  background: var(--blue);
+  color: #fff;
 }
 .ai-speech {
-  font-size: 11.5px;
-  color: #334155;
-  background: white;
-  padding: 8px 10px;
-  border-radius: 8px;
+  font-size: 12px;
+  color: var(--label-secondary);
+  background: rgba(255, 255, 255, 0.78);
+  padding: 10px 12px;
+  border-radius: var(--radius);
   margin: 0 0 10px;
-  line-height: 1.45;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  line-height: 1.5;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  white-space: pre-wrap;
+}
+.ai-speech.is-error {
+  color: #9b1c1c;
+  background: #fff5f5;
+  border-color: rgba(255, 59, 48, 0.18);
+}
+.ai-speech.is-busy {
+  color: var(--blue);
+}
+.ai-dropzone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed rgba(0, 113, 227, 0.28);
+  background: rgba(255, 255, 255, 0.45);
+  min-height: 40px;
+}
+.ai-dropzone.dragging {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+.ai-dropzone.has-image {
+  border-style: solid;
+}
+.paste-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+.drop-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--label-tertiary);
+  line-height: 1.4;
+}
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
 }
 .ai-input-row {
   display: flex;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .ai-input-row input {
   flex: 1;
-  padding: 7px 10px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--separator-opaque);
   font-size: 12px;
   outline: none;
+  background: #fff;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
 }
 .ai-input-row input:focus {
-  border-color: #0071e3;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.16);
 }
 .btn-ai-send {
-  background: #0071e3;
+  background: var(--blue);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0 14px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--spring);
+}
+.btn-ai-send:hover { background: var(--blue-hover); }
+.btn-ai-send:active { transform: scale(0.97); }
+.btn-ai-send:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
 }
 .ai-quick-tags {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 .tag-btn {
-  background: white;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  font-size: 10.5px;
-  color: #0071e3;
-  padding: 3px 8px;
-  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(0, 113, 227, 0.12);
+  font-size: 11px;
+  color: var(--blue);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--spring);
 }
-.tag-btn:hover { background: #e8f2ff; }
+.tag-btn:hover {
+  background: var(--blue-soft);
+  transform: translateY(-1px);
+}
+.tag-btn:active { transform: scale(0.97); }
 
-/* 分段控件 (Segmented Control) */
 .segmented-control {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  background: #f2f2f7;
-  padding: 2px;
-  border-radius: 9px;
+  background: var(--fill-grouped);
+  padding: 3px;
+  border-radius: var(--radius);
   gap: 2px;
 }
 .segment-item {
   background: transparent;
   border: none;
-  padding: 6px 0;
-  font-size: 11px;
-  color: #636366;
-  border-radius: 7px;
+  padding: 7px 0;
+  font-size: 11.5px;
+  color: var(--label-secondary);
+  border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background var(--duration) var(--spring), color var(--duration-fast) var(--ease-out), box-shadow var(--duration) var(--ease-out);
   text-align: center;
 }
 .segment-item.active {
-  background: white;
-  color: #1d1d1f;
+  background: #fff;
+  color: var(--label);
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-thumb);
 }
 
-/* 字段行 */
 .field-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
+  gap: 10px;
 }
 .field-row:last-child { margin-bottom: 0; }
 .field-name {
-  font-size: 12px;
-  color: #636366;
+  font-size: 12.5px;
+  color: var(--label);
+  flex-shrink: 0;
 }
 .apple-input {
-  width: 220px;
+  width: 210px;
   padding: 6px 10px;
-  border: 1px solid #e5e5ea;
-  border-radius: 7px;
-  font-size: 12px;
+  border: 1px solid var(--separator-opaque);
+  border-radius: var(--radius-xs);
+  font-size: 12.5px;
   outline: none;
-  background: #fbfbfd;
+  background: var(--fill-grouped);
+  transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
 }
 .apple-input:focus {
-  border-color: #0071e3;
-  background: white;
+  border-color: var(--blue);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.16);
 }
 
-/* 开关列表 */
 .switch-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* 文件与离线操作 */
 .ops-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: 6px;
 }
 .ops-btn {
-  background: #fbfbfd;
-  border: 1px solid #e5e5ea;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 11.5px;
-  color: #1d1d1f;
+  background: var(--fill-grouped);
+  border: 1px solid transparent;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--label);
   cursor: pointer;
   text-align: left;
-  transition: all 0.15s;
+  transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--spring);
 }
 .ops-btn:hover {
-  background: #f2f2f7;
-  border-color: #d1d1d6;
+  background: var(--fill-control);
 }
+.ops-btn:active { transform: scale(0.985); }
 .file-picker-label {
   display: block;
 }
 
-/* 底部按钮 */
 .sidebar-footer {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-top: auto;
+  padding-top: 8px;
+  animation: apple-rise var(--duration-slow) var(--ease-out) 240ms both;
 }
 .btn-primary {
-  background: #0071e3;
+  background: var(--blue);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 12px;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s;
+  letter-spacing: -0.2px;
+  box-shadow: 0 6px 16px rgba(0, 113, 227, 0.22);
+  transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--spring);
 }
-.btn-primary:hover { background: #0077ed; }
+.btn-primary:hover { background: var(--blue-hover); transform: translateY(-1px); }
+.btn-primary:active { transform: scale(0.985); }
 .btn-secondary {
-  background: #e5e5ea;
-  color: #1d1d1f;
+  background: var(--fill-control);
+  color: var(--label);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 9px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 550;
   cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--spring);
 }
-.btn-secondary:hover { background: #d1d1d6; }
+.btn-secondary:hover { background: var(--separator-opaque); }
+.btn-secondary:active { transform: scale(0.985); }
 
-/* 预览主舞台 */
 .preview-stage {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -875,41 +1515,44 @@ function handleExportPdf() {
 }
 .stage-toolbar {
   height: 44px;
-  background: rgba(255, 255, 255, 0.75);
+  flex-shrink: 0;
+  background: var(--glass);
   backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--separator);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 20px;
 }
 .toolbar-left {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 .badge-blue {
-  background: #e8f2ff;
-  color: #0071e3;
+  background: var(--blue-soft);
+  color: var(--blue);
   font-size: 11px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 6px;
+  font-weight: 550;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
 }
 .badge-gray {
-  background: #f2f2f7;
-  color: #636366;
+  background: var(--fill-grouped);
+  color: var(--label-secondary);
   font-size: 11px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 6px;
+  font-weight: 550;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
 }
 .badge-green {
-  background: #e8f8ed;
-  color: #34c759;
+  background: var(--green-soft);
+  color: #248a3d;
   font-size: 11px;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
 }
 .toolbar-right {
   display: flex;
@@ -917,40 +1560,37 @@ function handleExportPdf() {
   gap: 8px;
 }
 .btn-pro-edit {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  background: #f0f7ff;
-  border: 1px solid #cce3ff;
-  border-radius: 6px;
-  color: #0071e3;
-  font-size: 11px;
+  padding: 5px 12px;
+  background: #fff;
+  border: 1px solid rgba(0, 113, 227, 0.22);
+  border-radius: var(--radius-pill);
+  color: var(--blue);
+  font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--spring);
 }
 .btn-pro-edit:hover {
-  background: #0071e3;
-  color: #ffffff;
+  background: var(--blue);
+  color: #fff;
+  transform: translateY(-1px);
 }
 .zoom-label {
   font-size: 11px;
-  color: #86868b;
+  color: var(--label-tertiary);
 }
 .zoom-select {
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid #d1d1d6;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--separator-opaque);
   font-size: 11px;
-  background: white;
+  background: #fff;
 }
 
-/* 通知横幅 */
 .spooler-banner {
-  background: #1d1d1f;
+  background: var(--label);
   color: white;
-  padding: 8px 20px;
+  padding: 9px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -962,46 +1602,69 @@ function handleExportPdf() {
   gap: 8px;
 }
 .pulse-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #34c759;
-  box-shadow: 0 0 8px #34c759;
+  background: var(--green);
+  animation: apple-pulse 1.8s var(--ease-in-out) infinite;
 }
 .btn-banner-close {
   background: none;
   border: none;
-  color: #86868b;
+  color: var(--label-tertiary);
   cursor: pointer;
 }
 
-/* 视口与 A5 真实物理画幅仿真 */
 .paper-viewport {
   flex: 1;
   overflow: auto;
-  padding: 40px;
+  padding: 48px 40px 64px;
   display: flex;
   justify-content: center;
   position: relative;
+  background:
+    radial-gradient(900px 420px at 50% -8%, rgba(255, 255, 255, 0.78), transparent 62%),
+    linear-gradient(180deg, #ececef 0%, #e4e4e9 100%);
 }
 .a5-paper-canvas {
   width: 210mm;
   height: 148mm;
   background: white;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
-  border-radius: 2px;
+  box-shadow: var(--shadow-paper);
+  border-radius: 3px;
   padding: 8mm 10mm;
   box-sizing: border-box;
   position: relative;
   display: flex;
   flex-direction: column;
+  animation: apple-rise 520ms var(--ease-out) both;
 }
 
 .report-header {
-  text-align: center;
   border-bottom: 2px solid #0f172a;
   padding-bottom: 4px;
 }
+.report-header.align-left { text-align: left; }
+.report-header.align-center { text-align: center; }
+.report-header.align-right { text-align: right; }
+.header-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.report-header.align-center .header-main { justify-content: center; }
+.report-header.align-right .header-main { justify-content: flex-end; }
+.hospital-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+.report-no {
+  margin-left: auto;
+  font-size: 9px;
+  text-align: right;
+}
+.report-no span { display: block; color: #64748b; }
 .hospital-name {
   margin: 0;
   font-size: 16px;
@@ -1042,6 +1705,6 @@ function handleExportPdf() {
   margin-top: 4px;
   text-align: center;
 }
-.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+.fade-enter-active, .fade-leave-active { transition: opacity var(--duration) var(--ease-out); }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

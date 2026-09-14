@@ -163,32 +163,67 @@ impl MedicalReportCompiler {
 
         for element in &template.elements {
             match element {
-                ReportElement::HospitalHeader { hospital_name, report_title, sub_title: _ } => {
-                    // 主标题居中大字
-                    pdf.draw_text(pw / 2.0 - 45.0, current_y, hospital_name, 14.0, "F2");
+                ReportElement::HospitalHeader {
+                    hospital_name,
+                    report_title,
+                    sub_title: _,
+                    align,
+                    logo_data_url: _,
+                    show_report_no,
+                    report_no_label,
+                    report_no_preview,
+                } => {
+                    let left = m.left.as_mm();
+                    let right = pw - m.right.as_mm();
+                    let title_x = match align {
+                        crate::schema::HeaderAlign::Left => left,
+                        crate::schema::HeaderAlign::Right => (right - 70.0).max(left),
+                        crate::schema::HeaderAlign::Center => pw / 2.0 - 45.0,
+                    };
+                    pdf.draw_text(title_x, current_y, hospital_name, 14.0, "F2");
                     current_y += 6.0;
-                    pdf.draw_text(pw / 2.0 - 55.0, current_y, report_title, 11.0, "F2");
+                    pdf.draw_text(title_x, current_y, report_title, 11.0, "F2");
+                    if *show_report_no {
+                        let label = if report_no_label.is_empty() {
+                            "报告单号"
+                        } else {
+                            report_no_label
+                        };
+                        let no = if report_no_preview.is_empty() {
+                            "________"
+                        } else {
+                            report_no_preview
+                        };
+                        pdf.draw_text(right - 48.0, current_y, &format!("{label} {no}"), 8.0, "F1");
+                    }
                     current_y += 5.0;
-                    // 分割横线
-                    pdf.draw_line(m.left.as_mm(), current_y, pw - m.right.as_mm(), current_y, 0.75);
+                    pdf.draw_line(left, current_y, right, current_y, 0.75);
                     current_y += 2.0;
                 }
-                ReportElement::PatientBanner => {
-                    // 患者信息卡
-                    let banner_text = format!(
-                        "Name: {}  Gender: {:?}  Age: {}{:?}  MRN: {}  Sample: {}",
-                        patient.name, patient.gender, patient.age, patient.age_unit, patient.medical_record_no, patient.sample_type
-                    );
+                ReportElement::PatientBanner { include_barcode, fields } => {
+                    let banner_text = if fields.is_empty() {
+                        format!(
+                            "Name: {}  Gender: {:?}  Age: {}{:?}  MRN: {}  Sample: {}",
+                            patient.name, patient.gender, patient.age, patient.age_unit, patient.medical_record_no, patient.sample_type
+                        )
+                    } else {
+                        fields
+                            .iter()
+                            .map(|f| format!("{}: {}", f.label, f.preview_value))
+                            .collect::<Vec<_>>()
+                            .join("  ")
+                    };
                     pdf.draw_text(m.left.as_mm() + 2.0, current_y, &banner_text, 9.0, "F1");
 
-                    // 绘制采血管矢量条形码
-                    pdf.draw_barcode_code128(
-                        pw - m.right.as_mm() - 45.0,
-                        current_y - 1.0,
-                        40.0,
-                        7.0,
-                        &patient.barcode,
-                    );
+                    if *include_barcode {
+                        pdf.draw_barcode_code128(
+                            pw - m.right.as_mm() - 45.0,
+                            current_y - 1.0,
+                            40.0,
+                            7.0,
+                            &patient.barcode,
+                        );
+                    }
 
                     current_y += 9.0;
                     pdf.draw_line(m.left.as_mm(), current_y, pw - m.right.as_mm(), current_y, 0.5);

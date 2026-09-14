@@ -3,7 +3,7 @@
 //! 导出给前端 Web 浏览器与浏览器插件的 WebAssembly 极速排版与矢量渲染接口。
 
 use medprint_core::expr::ClinicalFormulas;
-use medprint_core::layout::SnakingTableEngine;
+use medprint_core::layout::{specs_from_designer_json, SlotLayoutEngine, SnakingTableEngine};
 use medprint_core::pdf::VectorPdfDoc;
 use medprint_core::schema::LabItemRow;
 use medprint_core::units::{PhysicalLength, PhysicalSize};
@@ -67,6 +67,17 @@ pub fn layout_a5_snaking(
 
     serde_json::to_string(&summary)
         .map_err(|e| JsValue::from_str(&format!("Serialize Error: {}", e)))
+}
+
+/// 根据设计器封闭 AST JSON 计算槽位物理框（毫米）。画布只投影这些框。
+#[wasm_bindgen]
+pub fn layout_slot_frames(template_json: &str) -> Result<String, JsValue> {
+    let value: serde_json::Value = serde_json::from_str(template_json)
+        .map_err(|e| JsValue::from_str(&format!("JSON Parse Error: {}", e)))?;
+    let (paper, margins, specs) = specs_from_designer_json(&value)
+        .map_err(|e| JsValue::from_str(&e))?;
+    let result = SlotLayoutEngine::layout(paper, margins, &specs);
+    serde_json::to_string(&result).map_err(|e| JsValue::from_str(&format!("Serialize Error: {}", e)))
 }
 
 /// 客户端纯矢量直出 A5 打印测试 PDF 字节流

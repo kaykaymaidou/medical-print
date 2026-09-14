@@ -117,8 +117,16 @@ fn test_full_report_template_compilation_to_vector_pdf() {
                 hospital_name: "国家级医学院附属第一医院".to_string(),
                 sub_title: "检验科报告单".to_string(),
                 report_title: "临床生化检验报告单 (A5横向双列)".to_string(),
+                align: Default::default(),
+                logo_data_url: None,
+                show_report_no: false,
+                report_no_label: String::new(),
+                report_no_preview: String::new(),
             },
-            ReportElement::PatientBanner,
+            ReportElement::PatientBanner {
+                include_barcode: true,
+                fields: Vec::new(),
+            },
             ReportElement::SnakingTable {
                 columns_count: 2,
                 column_gap: PhysicalLength::from_mm(6.0),

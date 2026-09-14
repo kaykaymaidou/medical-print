@@ -1,33 +1,40 @@
 <template>
   <div class="apple-app-shell">
-    <!-- macOS 质感顶部毛玻璃导航条 -->
     <header class="apple-nav-header">
       <div class="header-section left">
-        <div class="macos-traffic-lights">
+        <div class="macos-traffic-lights" aria-hidden="true">
           <span class="light red"></span>
           <span class="light yellow"></span>
           <span class="light green"></span>
         </div>
         <div class="brand">
-          <span class="brand-icon">🏥</span>
-          <span class="brand-title">MedPrint Studio</span>
-          <span class="brand-badge">v0.1.0</span>
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect width="18" height="18" rx="5" fill="#0071e3" />
+              <path d="M8.15 3.4h1.7v11.2h-1.7V3.4ZM3.4 8.15h11.2v1.7H3.4V8.15Z" fill="white" />
+            </svg>
+          </span>
+          <span class="brand-title">MedPrint</span>
+          <span class="brand-subtitle">Studio</span>
         </div>
       </div>
 
       <div class="header-section center">
-        <div class="apple-segmented-pill">
+        <div class="apple-segmented" :data-view="currentView">
+          <span class="seg-thumb" aria-hidden="true"></span>
           <button
-            :class="['pill-item', { active: currentView === 'wizard' }]"
+            type="button"
+            :class="['seg-item', { active: currentView === 'wizard' }]"
             @click="currentView = 'wizard'"
           >
-            🩺 医生快速向导
+            临床向导
           </button>
           <button
-            :class="['pill-item', { active: currentView === 'canvas' }]"
+            type="button"
+            :class="['seg-item', { active: currentView === 'canvas' }]"
             @click="currentView = 'canvas'"
           >
-            🛠️ 极客自由画布
+            AST 审查
           </button>
         </div>
       </div>
@@ -35,23 +42,24 @@
       <div class="header-section right">
         <div class="agent-status-tag">
           <span class="status-dot"></span>
-          <span>🖨️ 打印机 Spooler 硬件联机 (就绪)</span>
+          <span>Spooler 就绪</span>
         </div>
       </div>
     </header>
 
-    <!-- 工作台视口 -->
     <div class="apple-main-viewport">
-      <DoctorWizard
-        v-if="currentView === 'wizard'"
-        @switch-to-canvas="currentView = 'canvas'"
-      />
-      
-      <!-- 极客自由画布 -->
-      <ProCanvas
-        v-else
-        @switch-view="currentView = $event"
-      />
+      <Transition name="apple-view" mode="out-in">
+        <DoctorWizard
+          v-if="currentView === 'wizard'"
+          key="wizard"
+          @switch-to-canvas="currentView = 'canvas'"
+        />
+        <ProCanvas
+          v-else
+          key="canvas"
+          @switch-view="currentView = $event"
+        />
+      </Transition>
     </div>
   </div>
 </template>
@@ -64,177 +72,159 @@ import ProCanvas from './views/ProCanvas.vue'
 const currentView = ref<'wizard' | 'canvas'>('wizard')
 </script>
 
-<style>
-* {
-  box-sizing: border-box;
-}
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #f5f5f7;
-  -webkit-font-smoothing: antialiased;
-}
-</style>
-
 <style scoped>
 .apple-app-shell {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  height: 100%;
+  background: var(--fill);
 }
 
-/* macOS 风格顶部毛玻璃导航条 */
 .apple-nav-header {
   height: 52px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+  background: var(--glass);
+  backdrop-filter: saturate(180%) blur(22px);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+  border-bottom: 1px solid var(--separator);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 18px;
   position: relative;
   z-index: 50;
 }
+.apple-nav-header::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  pointer-events: none;
+}
+
 .header-section {
   display: flex;
   align-items: center;
+  min-width: 0;
 }
+.header-section.center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.header-section.right {
+  margin-left: auto;
+}
+
 .macos-traffic-lights {
   display: flex;
   gap: 7px;
-  margin-right: 16px;
+  margin-right: 14px;
 }
 .light {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  display: inline-block;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
 }
-.light.red { background: #ff5f56; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }
-.light.yellow { background: #ffbd2e; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }
-.light.green { background: #27c93f; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }
+.light.red { background: #ff5f57; }
+.light.yellow { background: #febc2e; }
+.light.green { background: #28c840; }
 
 .brand {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 6px;
 }
-.brand-icon { font-size: 18px; }
+.brand-mark {
+  display: inline-flex;
+  align-self: center;
+  filter: drop-shadow(0 1px 1px rgba(0, 113, 227, 0.28));
+}
 .brand-title {
   font-size: 14px;
-  font-weight: 600;
-  color: #1d1d1f;
-  letter-spacing: -0.3px;
+  font-weight: 650;
+  color: var(--label);
+  letter-spacing: -0.32px;
 }
-.brand-badge {
-  background: #f2f2f7;
-  color: #86868b;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-/* Apple 胶囊分段控制 */
-.apple-segmented-pill {
-  display: flex;
-  background: #ebebeb;
-  padding: 3px;
-  border-radius: 9999px;
-  gap: 2px;
-}
-.pill-item {
-  background: transparent;
-  border: none;
-  padding: 5px 18px;
-  border-radius: 9999px;
+.brand-subtitle {
   font-size: 12px;
   font-weight: 500;
-  color: #636366;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--label-tertiary);
+  letter-spacing: -0.2px;
 }
-.pill-item.active {
-  background: white;
-  color: #1d1d1f;
+
+.apple-segmented {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--fill-control);
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  min-width: 228px;
+}
+.seg-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  background: #fff;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-thumb);
+  transition: transform var(--duration) var(--spring);
+  pointer-events: none;
+}
+.apple-segmented[data-view="canvas"] .seg-thumb {
+  transform: translateX(100%);
+}
+.seg-item {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: none;
+  padding: 6px 18px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--label-secondary);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.seg-item.active {
+  color: var(--label);
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .agent-status-tag {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: #eafaf1;
-  color: #248a3d;
+  gap: 7px;
+  background: var(--green-soft);
+  color: #1f7a36;
   font-size: 11.5px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  border: 1px solid rgba(36, 138, 61, 0.2);
+  font-weight: 550;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
 }
 .status-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #34c759;
-  box-shadow: 0 0 6px #34c759;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.18);
+  animation: apple-pulse 2.4s var(--ease-in-out) infinite;
 }
 
 .apple-main-viewport {
   flex: 1;
+  min-height: 0;
   overflow: hidden;
+  position: relative;
 }
-
-.pro-canvas-wrapper {
+.apple-main-viewport :deep(.apple-workspace),
+.apple-main-viewport :deep(.pro-canvas-container) {
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f5f5f7;
 }
-.pro-canvas-card {
-  background: white;
-  border-radius: 16px;
-  padding: 48px;
-  max-width: 580px;
-  text-align: center;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
-}
-.card-icon { font-size: 40px; margin-bottom: 12px; }
-.pro-canvas-card h2 {
-  margin: 0 0 10px;
-  font-size: 20px;
-  font-weight: 600;
-  color: #1d1d1f;
-}
-.card-desc {
-  font-size: 13px;
-  color: #86868b;
-  line-height: 1.6;
-  margin: 0 0 20px;
-}
-.info-pill {
-  background: #f2f2f7;
-  color: #1d1d1f;
-  display: inline-block;
-  font-size: 12px;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  margin-bottom: 24px;
-}
-.btn-return-wizard {
-  background: #0071e3;
-  color: white;
-  border: none;
-  padding: 10px 24px;
-  border-radius: 9999px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.btn-return-wizard:hover { background: #0077ed; }
 </style>

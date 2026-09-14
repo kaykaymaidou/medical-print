@@ -22,7 +22,11 @@ pub mod units;
 pub use barcode::{BarcodeBar, Code128Encoder};
 pub use charts::{PacsGridLayout, TegChartGenerator};
 pub use expr::{ClinicalFormulas, DemographicEvaluator};
-pub use layout::{PageBreakPolicy, SnakingTableEngine};
+pub use layout::{
+    ObstacleBox, ObstacleLayoutSolver, PageBreakPolicy, PhysicalRect, SlotFrame, SlotKind,
+    SlotLayoutEngine, SlotLayoutResult, SlotLayoutSpec, SnakingTableEngine,
+    specs_from_designer_json,
+};
 pub use pdf::{MedicalReportCompiler, VectorPdfDoc};
 pub use schema::{
     AgeUnit, AlertFlag, Gender, HospitalSeal, LabItemRow, MedicalReportType, PatientInfo,

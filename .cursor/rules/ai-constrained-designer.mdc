@@ -1,0 +1,14 @@
+---
+description: MedPrint 设计器禁止做成传统低代码；意图→封闭 AST→引擎排版。
+alwaysApply: true
+---
+
+# 禁止传统低代码（产品约束，不是冻死模板）
+
+设计器不是 Grapecity / FineReport：不要加开放物料、**以自由坐标为打印源**、通用表达式或自定义组件协议。
+
+但**允许**在封闭 `ReportElement` 内灵活覆写：页眉对齐/院徽/报告单号、患者字段目录增删排序、折流参数；允许拖封闭槽位改文档流顺序，松手后引擎重算毫米框。
+
+合法链路：临床意图 → AI 工具 → `ReportTemplate`（Rust 有限枚举）→ `medprint-core` 物理毫米排版 → Vue 投影。
+
+新增视觉类型必须先改 `crates/medprint-core/src/schema/mod.rs`。细节见 skill `ai-constrained-designer`、`template-ast`、`physical-layout`、`clinical-ai-agent`。

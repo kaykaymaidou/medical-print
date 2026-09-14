@@ -3,16 +3,15 @@
     <!-- macOS 质感顶部工具栏 -->
     <div class="pro-toolbar">
       <div class="toolbar-left">
-        <button class="tool-btn" title="返回医生向导" @click="$emit('switch-view', 'wizard')">
-          <span class="icon">🩺</span>
-          <span>医生向导</span>
+        <button class="tool-btn" title="返回临床向导" @click="$emit('switch-view', 'wizard')">
+          向导
         </button>
 
         <div class="divider"></div>
 
         <!-- 纸张规格切换 -->
         <div class="paper-selector">
-          <span class="label">纸张尺寸:</span>
+          <span class="label">纸张</span>
           <select v-model="currentPaperKey" class="apple-select-sm" @change="handlePaperChange">
             <option value="a5_landscape">A5 横向 (210 × 148 mm) - 推荐化验单</option>
             <option value="a4_portrait">A4 纵向 (210 × 297 mm) - 综合大病历</option>
@@ -56,32 +55,23 @@
           </button>
         </div>
 
-        <button
-          :class="['toggle-guide-btn', { active: showSnakingGuide }]"
-          title="显示/隐藏 A5 双列中轴参考线"
-          @click="showSnakingGuide = !showSnakingGuide"
-        >
-          双列中轴线
-        </button>
+          <button
+            :class="['toggle-guide-btn', { active: showSnakingGuide }]"
+            title="显示折流分栏线：左列排满后转入右列，可拖动改左右列宽"
+            @click="showSnakingGuide = !showSnakingGuide"
+          >
+            折流分栏
+          </button>
+
+        <span class="engine-badge">{{ engineBadge }}</span>
       </div>
 
       <div class="toolbar-right">
         <!-- 实验室与功能模态框触发器 -->
-        <button class="tool-action-btn" @click="showFormulaLab = true">
-          <span>⚗️ 公式实验室</span>
-        </button>
-
-        <button class="tool-action-btn" @click="showArchive = true">
-          <span>📁 本地档案库</span>
-        </button>
-
-        <button class="tool-action-btn" @click="exportJsonTemplate">
-          <span>📤 导出模板</span>
-        </button>
-
-        <button class="tool-action-btn primary" @click="handlePrintPdf">
-          <span>🖨️ 矢量直印</span>
-        </button>
+        <button class="tool-action-btn" @click="showFormulaLab = true">公式</button>
+        <button class="tool-action-btn" @click="showArchive = true">档案</button>
+        <button class="tool-action-btn" @click="exportJsonTemplate">导出</button>
+        <button class="tool-action-btn primary" @click="handlePrintPdf">矢量直印</button>
       </div>
     </div>
 
@@ -90,68 +80,66 @@
       <!-- 左侧物料工具箱 -->
       <div class="toolbox-panel">
         <div class="panel-header">
-          <span>医疗物料库 (Toolbox)</span>
+          <span>封闭槽位</span>
         </div>
         <div class="toolbox-groups">
-          <div class="group-title">排版与基础</div>
-          <div class="tool-grid">
-            <button class="tool-item" @click="addElement('header')">
-              <span class="icon">🏥</span>
-              <span>医院页眉</span>
-            </button>
-            <button class="tool-item" @click="addElement('demographics')">
-              <span class="icon">👤</span>
-              <span>患者信息条</span>
-            </button>
-            <button class="tool-item" @click="addElement('label')">
-              <span class="icon">📝</span>
-              <span>文本/表达式</span>
-            </button>
-            <button class="tool-item" @click="addElement('perforation')">
-              <span class="icon">✂️</span>
-              <span>针打撕纸线</span>
+          <div class="group-title">文档流</div>
+          <div class="tool-list">
+            <button
+              v-for="item in CLOSED_TOOLBOX.filter((t) => t.group === 'flow')"
+              :key="item.canvasType"
+              class="tool-row"
+              :class="{
+                occupied: occupied.has(item.astKind),
+                active: selectedElement?.type === item.canvasType,
+              }"
+              :title="occupied.has(item.astKind) ? '已入单，点击选中并改属性' : `添加${item.label}`"
+              @click="occupied.has(item.astKind) ? selectSlotByType(item.canvasType) : addElement(item.canvasType)"
+            >
+              <span class="tool-name">{{ item.label }}</span>
+              <span v-if="occupied.has(item.astKind)" class="tool-check">已入单</span>
             </button>
           </div>
 
-          <div class="group-title">医疗数据与折流</div>
-          <div class="tool-grid">
-            <button class="tool-item" @click="addElement('snaking_table')">
-              <span class="icon">📊</span>
-              <span>A5双列折流表</span>
-            </button>
-            <button class="tool-item" @click="addElement('grid_table')">
-              <span class="icon">📋</span>
-              <span>常规项目表</span>
-            </button>
-            <button class="tool-item" @click="addElement('barcode')">
-              <span class="icon">🔲</span>
-              <span>条码/二维码</span>
+          <div class="group-title">临床</div>
+          <div class="tool-list">
+            <button
+              v-for="item in CLOSED_TOOLBOX.filter((t) => t.group === 'clinical')"
+              :key="item.canvasType"
+              class="tool-row"
+              :class="{
+                occupied: occupied.has(item.astKind),
+                active: selectedElement?.type === item.canvasType,
+              }"
+              :title="occupied.has(item.astKind) ? '已入单，点击选中并改属性' : `添加${item.label}`"
+              @click="occupied.has(item.astKind) ? selectSlotByType(item.canvasType) : addElement(item.canvasType)"
+            >
+              <span class="tool-name">{{ item.label }}</span>
+              <span v-if="occupied.has(item.astKind)" class="tool-check">已入单</span>
             </button>
           </div>
 
-          <div class="group-title">临床影像与责任</div>
-          <div class="tool-grid">
-            <button class="tool-item" @click="addElement('teg_chart')">
-              <span class="icon">📈</span>
-              <span>TEG 弹力图</span>
-            </button>
-            <button class="tool-item" @click="addElement('pacs_grid')">
-              <span class="icon">🖼️</span>
-              <span>PACS 影像网格</span>
-            </button>
-            <button class="tool-item" @click="addElement('seal')">
-              <span class="icon">🔴</span>
-              <span>防伪检验红章</span>
-            </button>
-            <button class="tool-item" @click="addElement('signature_chain')">
-              <span class="icon">✍️</span>
-              <span>三级签名链</span>
+          <div class="group-title">合规</div>
+          <div class="tool-list">
+            <button
+              v-for="item in CLOSED_TOOLBOX.filter((t) => t.group === 'compliance')"
+              :key="item.canvasType"
+              class="tool-row"
+              :class="{
+                occupied: occupied.has(item.astKind),
+                active: selectedElement?.type === item.canvasType,
+              }"
+              :title="occupied.has(item.astKind) ? '已入单，点击选中并改属性' : `添加${item.label}`"
+              @click="occupied.has(item.astKind) ? selectSlotByType(item.canvasType) : addElement(item.canvasType)"
+            >
+              <span class="tool-name">{{ item.label }}</span>
+              <span v-if="occupied.has(item.astKind)" class="tool-check">已入单</span>
             </button>
           </div>
         </div>
 
         <div class="toolbox-footer">
-          <span class="hint">💡 点击物料即可直接放置到画布</span>
+          <span class="hint">封闭槽位可上下拖改文档流；点页眉可改对齐/院徽/报告单号，点患者条可增删字段。坐标仍由引擎重算。</span>
         </div>
       </div>
 
@@ -180,49 +168,58 @@
               :style="gridOverlayStyle"
             ></div>
 
-            <!-- A5 横向双列中轴参考辅助线 (X = 105mm) -->
-            <div
-              v-if="showSnakingGuide && currentPaperKey === 'a5_landscape'"
-              class="snaking-center-guide"
-              :style="{ left: 105 * mmToPx + 'px' }"
-            >
-              <span class="guide-tag">折流中轴线 105mm</span>
-            </div>
+            <!-- 折流分栏改到表格槽位上拖动，不再画一条固定 105mm 纸心线 -->
 
             <!-- 画布中所有元素 -->
             <div
               v-for="el in elements"
               :key="el.id"
               class="canvas-element"
-              :class="{ selected: selectedElementId === el.id }"
+              :class="{ selected: selectedElementId === el.id, reordering: dragSlot?.id === el.id }"
               :style="getElementStyle(el)"
-              @mousedown.stop="startDrag(el, $event)"
               @click.stop="selectElement(el)"
+              @mousedown.stop="startSlotReorder($event, el)"
             >
               <!-- 元素内容动态插槽与渲染 -->
               <div class="element-content">
                 <!-- 医院页眉 -->
                 <template v-if="el.type === 'header'">
-                  <div class="el-header">
-                    <h2 class="hospital-title">{{ el.props.hospitalName || '北京协和医学院附属第一医院' }}</h2>
-                    <div class="report-subtitle">{{ el.props.reportTitle || '临床生化检验报告单 (CLINICAL BIOCHEMISTRY)' }}</div>
+                  <div class="el-header" :class="'align-' + (el.props.align || 'center')">
+                    <div class="header-main">
+                      <img
+                        v-if="el.props.logoDataUrl"
+                        class="hospital-logo"
+                        :src="el.props.logoDataUrl"
+                        alt=""
+                      />
+                      <div class="header-copy">
+                        <h2 class="hospital-title">{{ el.props.hospitalName || '医院名称' }}</h2>
+                        <div class="report-subtitle">{{ el.props.reportTitle || '报告标题' }}</div>
+                        <div v-if="el.props.subTitle" class="report-sub">{{ el.props.subTitle }}</div>
+                      </div>
+                      <div v-if="el.props.showReportNo" class="report-no">
+                        <span>{{ el.props.reportNoLabel || '报告单号' }}</span>
+                        <strong>{{ el.props.reportNoPreview || '________' }}</strong>
+                      </div>
+                    </div>
                   </div>
                 </template>
 
-                <!-- 患者信息条 -->
                 <template v-else-if="el.type === 'demographics'">
                   <div class="el-demographics">
-                    <div class="info-cell"><span>姓名:</span> <strong>张伟</strong></div>
-                    <div class="info-cell"><span>性别:</span> <strong>男</strong></div>
-                    <div class="info-cell"><span>年龄:</span> <strong>45岁</strong></div>
-                    <div class="info-cell"><span>病历号:</span> <strong>MZ809214</strong></div>
-                    <div class="info-cell"><span>科室:</span> <strong>内分泌门诊</strong></div>
-                    <div class="info-cell"><span>标本:</span> <strong>静脉血清</strong></div>
+                    <div
+                      v-for="(field, fi) in bannerFields(el)"
+                      :key="field.key + '-' + fi"
+                      class="info-cell"
+                    >
+                      <span>{{ field.label }}:</span>
+                      <strong>{{ field.preview_value }}</strong>
+                    </div>
                   </div>
                 </template>
 
-                <!-- 文本 / 表达式 -->
-                <template v-else-if="el.type === 'label'">
+                <!-- 免责声明 / 备注槽位（不是自由文本控件） -->
+                <template v-else-if="el.type === 'label' || el.type === 'notes'">
                   <div class="el-label" :style="{ fontSize: (el.props.fontSizePt || 9) + 'pt', textAlign: el.props.align || 'left' }">
                     {{ el.props.text || '【提示】此报告仅对本次标本负责，如有疑问请于24小时内复核。' }}
                   </div>
@@ -238,21 +235,41 @@
                   </div>
                 </template>
 
-                <!-- A5 双列折流表 -->
+                <!-- A5 双列折流表：左列排满后转入右列 -->
                 <template v-else-if="el.type === 'snaking_table'">
                   <div class="el-snaking-table-mock">
-                    <div class="mock-table-col left">
-                      <div class="col-head"><span>项目名称</span><span>结果</span><span>参考值</span></div>
-                      <div class="col-row"><span>丙氨酸氨基转移酶 ALT</span><strong>42</strong><span>9~50</span></div>
-                      <div class="col-row"><span>天门冬氨酸转移酶 AST</span><strong>28</strong><span>15~40</span></div>
-                      <div class="col-row alert"><span>总胆固醇 TC</span><strong class="text-danger">6.42 ↑</strong><span>< 5.2</span></div>
+                    <div
+                      class="mock-table-col left"
+                      :style="{ flex: Number(el.props.leftRatio || 0.5) }"
+                    >
+                      <div class="col-head"><span>项目</span><span>结果</span><span>参考</span></div>
+                      <div
+                        v-for="row in snakingPreview(el).left"
+                        :key="'L' + row.index"
+                        class="col-row"
+                        :class="{ alert: row.alert_flag !== 'Normal' }"
+                      >
+                        <span>{{ row.item_name }}</span>
+                        <strong :class="{ 'text-danger': row.alert_flag !== 'Normal' }">{{ row.result_value }}</strong>
+                        <span>{{ row.ref_range_display }}</span>
+                      </div>
                     </div>
                     <div class="mock-table-divider"></div>
-                    <div class="mock-table-col right">
-                      <div class="col-head"><span>项目名称</span><span>结果</span><span>参考值</span></div>
-                      <div class="col-row"><span>甘油三酯 TG</span><strong>1.65</strong><span>< 1.7</span></div>
-                      <div class="col-row alert"><span>低密度脂蛋白 LDL</span><strong class="text-danger">3.98 ↑</strong><span>< 3.4</span></div>
-                      <div class="col-row"><span>尿素氮 BUN</span><strong>6.2</strong><span>3.2~7.1</span></div>
+                    <div
+                      class="mock-table-col right"
+                      :style="{ flex: 1 - Number(el.props.leftRatio || 0.5) }"
+                    >
+                      <div class="col-head"><span>项目</span><span>结果</span><span>参考</span></div>
+                      <div
+                        v-for="row in snakingPreview(el).right"
+                        :key="'R' + row.index"
+                        class="col-row"
+                        :class="{ alert: row.alert_flag !== 'Normal' }"
+                      >
+                        <span>{{ row.item_name }}</span>
+                        <strong :class="{ 'text-danger': row.alert_flag !== 'Normal' }">{{ row.result_value }}</strong>
+                        <span>{{ row.ref_range_display }}</span>
+                      </div>
                     </div>
                   </div>
                 </template>
@@ -285,14 +302,19 @@
 
                 <!-- PACS 影像网格 -->
                 <template v-else-if="el.type === 'pacs_grid'">
-                  <div class="el-pacs-grid">
-                    <div class="pacs-frame">
-                      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='120'><rect width='160' height='120' fill='%23111'/><circle cx='80' cy='60' r='35' fill='%23333'/><text x='10' y='20' fill='%23aaa' font-size='10'>US B-Mode</text></svg>" />
-                      <span class="pacs-tag">超声切面 A</span>
-                    </div>
-                    <div class="pacs-frame">
-                      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='120'><rect width='160' height='120' fill='%23111'/><ellipse cx='80' cy='60' rx='40' ry='25' fill='%23444'/><text x='10' y='20' fill='%23aaa' font-size='10'>CDFI Flow</text></svg>" />
-                      <span class="pacs-tag">彩色多普勒 B</span>
+                  <div
+                    class="el-pacs-grid"
+                    :style="{
+                      gridTemplateColumns: `repeat(${Number(el.props.gridCols) || 2}, 1fr)`,
+                      gridTemplateRows: `repeat(${Number(el.props.gridRows) || 1}, 1fr)`,
+                    }"
+                  >
+                    <div
+                      v-for="n in (Number(el.props.gridCols) || 2) * (Number(el.props.gridRows) || 1)"
+                      :key="n"
+                      class="pacs-frame"
+                    >
+                      <span class="pacs-tag">切面 {{ n }}</span>
                     </div>
                   </div>
                 </template>
@@ -315,195 +337,362 @@
                 </template>
               </div>
 
-              <!-- 8个控制调整手柄 (仅选中时显示) -->
-              <template v-if="selectedElementId === el.id">
-                <div class="handle nw" @mousedown.stop="startResize(el, 'nw', $event)"></div>
-                <div class="handle n" @mousedown.stop="startResize(el, 'n', $event)"></div>
-                <div class="handle ne" @mousedown.stop="startResize(el, 'ne', $event)"></div>
-                <div class="handle e" @mousedown.stop="startResize(el, 'e', $event)"></div>
-                <div class="handle se" @mousedown.stop="startResize(el, 'se', $event)"></div>
-                <div class="handle s" @mousedown.stop="startResize(el, 's', $event)"></div>
-                <div class="handle sw" @mousedown.stop="startResize(el, 'sw', $event)"></div>
-                <div class="handle w" @mousedown.stop="startResize(el, 'w', $event)"></div>
-              </template>
+              <div class="slot-chip">{{ el.name }}</div>
+
+              <!-- 折流分栏：拖这条线改左右列宽比，不是纸张几何中心 -->
+              <div
+                v-if="el.type === 'snaking_table' && showSnakingGuide"
+                class="split-handle"
+                :class="{ dragging: draggingSplit }"
+                :style="{ left: splitHandleLeft(el) }"
+                title="折流分栏：左列排满后转入右列。左右拖动改列宽比。"
+                @mousedown.stop.prevent="startSplitDrag($event, el)"
+              >
+                <span class="split-label">折流</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 右侧 Apple 质感极客属性检查器 -->
+      <!-- 右侧槽位检查器：可写 AST 在上，引擎框只读在下 -->
       <div class="inspector-panel">
         <div class="inspector-header">
-          <span>属性检查器 (Inspector)</span>
+          <span>{{ selectedElement ? `槽位 · ${selectedElement.name}` : '槽位检查器' }}</span>
         </div>
 
-        <template v-if="selectedElement">
-          <!-- 属性分段切换 -->
-          <div class="inspector-tabs">
-            <button
-              :class="['tab-btn', { active: inspectorTab === 'geo' }]"
-              @click="inspectorTab = 'geo'"
-            >
-              📐 几何布局
-            </button>
-            <button
-              :class="['tab-btn', { active: inspectorTab === 'style' }]"
-              @click="inspectorTab = 'style'"
-            >
-              🎨 样式字体
-            </button>
-            <button
-              :class="['tab-btn', { active: inspectorTab === 'medical' }]"
-              @click="inspectorTab = 'medical'"
-            >
-              🩺 医疗专项
-            </button>
+        <div class="inspector-tabs">
+          <button
+            type="button"
+            class="tab-btn"
+            :class="{ active: rightPanelTab === 'props' }"
+            @click="rightPanelTab = 'props'"
+          >
+            槽位属性
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            :class="{ active: rightPanelTab === 'constraints' }"
+            @click="rightPanelTab = 'constraints'"
+          >
+            📐 约束规格
+          </button>
+        </div>
+
+        <!-- 约束规格模式 -->
+        <div v-if="rightPanelTab === 'constraints'" class="inspector-body">
+          <ConstraintInspector
+            :model-value="reportTemplate"
+            :selected-element-index="selectedAstElementIndex"
+            @update:model-value="handleConstraintUpdate"
+          />
+        </div>
+
+        <div v-else-if="selectedElement" class="inspector-body">
+          <template v-if="selectedElement.type === 'header'">
+            <div class="prop-title">医院页眉</div>
+            <p class="prop-hint">对齐、院徽、报告单号都是页眉槽位参数。槽位可上下拖改变文档流顺序，坐标仍由引擎重排。</p>
+            <div class="align-pills">
+              <button
+                v-for="opt in alignOptions"
+                :key="opt.id"
+                type="button"
+                class="action-btn"
+                :class="{ primary: (selectedElement.props.align || 'center') === opt.id }"
+                @click="setHeaderAlign(opt.id)"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+            <div class="prop-field">
+              <label>医院名称</label>
+              <input v-model="selectedElement.props.hospitalName" class="apple-input-sm" @change="commitOverrides" />
+            </div>
+            <div class="prop-field">
+              <label>报告标题</label>
+              <input v-model="selectedElement.props.reportTitle" class="apple-input-sm" @change="commitOverrides" />
+            </div>
+            <div class="prop-field">
+              <label>副标题</label>
+              <input v-model="selectedElement.props.subTitle" class="apple-input-sm" @change="commitOverrides" />
+            </div>
+            <div class="prop-field">
+              <label>院徽 / 图标</label>
+              <input type="file" accept="image/*" class="apple-input-sm" @change="onLogoFile" />
+              <button v-if="selectedElement.props.logoDataUrl" type="button" class="action-btn" @click="clearLogo">移除图标</button>
+            </div>
+            <div class="checkbox-row">
+              <input id="report-no-check" v-model="selectedElement.props.showReportNo" type="checkbox" @change="commitOverrides" />
+              <label for="report-no-check">显示报告单号</label>
+            </div>
+            <template v-if="selectedElement.props.showReportNo">
+              <div class="prop-field">
+                <label>编号标签</label>
+                <input v-model="selectedElement.props.reportNoLabel" class="apple-input-sm" @change="commitOverrides" />
+              </div>
+              <div class="prop-field">
+                <label>预览编号</label>
+                <input v-model="selectedElement.props.reportNoPreview" class="apple-input-sm" @change="commitOverrides" />
+              </div>
+            </template>
+          </template>
+
+          <template v-else-if="selectedElement.type === 'demographics'">
+            <div class="prop-title">患者信息条</div>
+            <p class="prop-hint">字段来自临床目录，可增删、改标签、上下排序。不是自由文本控件。</p>
+            <div class="checkbox-row">
+              <input id="barcode-check" v-model="selectedElement.props.includeBarcode" type="checkbox" @change="commitOverrides" />
+              <label for="barcode-check">显示标本条码</label>
+            </div>
+            <div class="item-list">
+              <div v-for="(field, i) in bannerFields(selectedElement)" :key="field.key + '-' + i" class="item-row field-edit">
+                <button type="button" class="item-del" :disabled="i === 0" @click="onMovePatientField(i, -1)">↑</button>
+                <button type="button" class="item-del" :disabled="i === bannerFields(selectedElement).length - 1" @click="onMovePatientField(i, 1)">↓</button>
+                <input class="apple-input-sm item-abbr" :value="field.label" @change="onPatientFieldInput(i, 'label', $event)" />
+                <input class="apple-input-sm" :value="field.preview_value" @change="onPatientFieldInput(i, 'preview_value', $event)" />
+                <button type="button" class="item-del" @click="onRemovePatientField(i)">×</button>
+              </div>
+            </div>
+            <div class="field-add">
+              <select v-model="pendingPatientKey" class="apple-select-sm">
+                <option v-for="opt in unusedPatientKeys" :key="opt.key" :value="opt.key">{{ opt.label }}</option>
+              </select>
+              <button type="button" class="action-btn primary" :disabled="!pendingPatientKey" @click="onAddPatientField">加入字段</button>
+            </div>
+          </template>
+
+          <template v-else-if="selectedElement.type === 'snaking_table'">
+            <div class="prop-title">A5 双列折流表</div>
+            <p class="prop-hint">
+              旧的纸心 105mm 线是 A5 双列折流参考，不是几何中心。现在请拖表格上的蓝色「折流」手柄改左右列宽：左列排满后转入右列。固定两列，「新增检验项目」加的是行，不是第三列纸栏。
+            </p>
+            <div class="prop-field">
+              <label>左列占比 {{ Number(selectedElement.props.leftRatio || 0.5).toFixed(2) }}</label>
+              <input
+                v-model.number="selectedElement.props.leftRatio"
+                type="range"
+                min="0.28"
+                max="0.72"
+                step="0.01"
+                class="ratio-slider"
+                @input="onLeftRatioLive"
+                @change="commitOverrides"
+              />
+            </div>
+            <div class="prop-row-2">
+              <div class="prop-field">
+                <label>列间距 (mm)</label>
+                <input v-model.number="selectedElement.props.columnGapMm" type="number" step="0.5" min="0" class="apple-input-sm" @change="commitOverrides" />
+              </div>
+              <div class="prop-field">
+                <label>行高 (mm)</label>
+                <input v-model.number="selectedElement.props.rowHeightMm" type="number" step="0.5" min="3" class="apple-input-sm" @change="commitOverrides" />
+              </div>
+            </div>
+            <div class="checkbox-row">
+              <input id="compact-check" v-model="selectedElement.props.autoCompaction" type="checkbox" @change="commitOverrides" />
+              <label for="compact-check">超行时单页紧凑压缩</label>
+            </div>
+
+            <div class="prop-title" style="margin-top: 12px">检验项目（{{ labItems.length }}）</div>
+            <div class="item-list">
+              <div v-for="(row, i) in labItems" :key="row.index" class="item-row">
+                <input
+                  :value="row.item_name"
+                  class="apple-input-sm"
+                  placeholder="项目名"
+                  @change="onLabItemInput(i, 'item_name', $event)"
+                />
+                <input
+                  :value="row.item_abbr"
+                  class="apple-input-sm item-abbr"
+                  placeholder="缩写"
+                  @change="onLabItemInput(i, 'item_abbr', $event)"
+                />
+                <input
+                  :value="row.result_value"
+                  class="apple-input-sm item-result"
+                  placeholder="结果"
+                  @change="onLabItemInput(i, 'result_value', $event)"
+                />
+                <button type="button" class="item-del" title="移除该检验项目" @click="onRemoveLabItem(i)">删</button>
+              </div>
+            </div>
+            <button type="button" class="action-btn" @click="onAddLabItem">新增检验项目</button>
+          </template>
+
+          <template v-else-if="selectedElement.type === 'pacs_grid'">
+            <div class="prop-title">PACS 影像网格</div>
+            <p class="prop-hint">只允许 1 / 2 / 4 / 6 宫格，保持切面比例不拉伸。</p>
+            <div class="pacs-presets">
+              <button
+                v-for="preset in pacsPresets"
+                :key="preset.label"
+                type="button"
+                :class="['preset-btn', { active: isPacsPresetActive(preset) }]"
+                @click="applyPacsPreset(preset)"
+              >
+                {{ preset.label }}
+              </button>
+            </div>
+            <div class="checkbox-row">
+              <input id="scale-check" v-model="selectedElement.props.showScaleRuler" type="checkbox" @change="commitOverrides" />
+              <label for="scale-check">显示物理标尺</label>
+            </div>
+            <button type="button" class="action-btn" @click="showPacsAdjust = true">窗宽窗位调校</button>
+          </template>
+
+          <template v-else-if="selectedElement.type === 'teg_chart'">
+            <div class="prop-title">TEG 弹力图参数</div>
+            <div class="prop-row-2">
+              <div class="prop-field">
+                <label>R (min)</label>
+                <input v-model.number="selectedElement.props.rTimeMin" type="number" step="0.1" class="apple-input-sm" @change="commitOverrides" />
+              </div>
+              <div class="prop-field">
+                <label>K (min)</label>
+                <input v-model.number="selectedElement.props.kTimeMin" type="number" step="0.1" class="apple-input-sm" @change="commitOverrides" />
+              </div>
+            </div>
+            <div class="prop-row-2">
+              <div class="prop-field">
+                <label>α (°)</label>
+                <input v-model.number="selectedElement.props.alphaAngleDeg" type="number" step="0.1" class="apple-input-sm" @change="commitOverrides" />
+              </div>
+              <div class="prop-field">
+                <label>MA (mm)</label>
+                <input v-model.number="selectedElement.props.maAmplitudeMm" type="number" step="0.1" class="apple-input-sm" @change="commitOverrides" />
+              </div>
+            </div>
+            <div class="prop-field">
+              <label>LY30 (%)</label>
+              <input v-model.number="selectedElement.props.ly30Percent" type="number" step="0.1" class="apple-input-sm" @change="commitOverrides" />
+            </div>
+          </template>
+
+          <template v-else-if="selectedElement.type === 'notes'">
+            <div class="prop-title">免责声明</div>
+            <div class="prop-field">
+              <label>声明文本</label>
+              <textarea
+                v-model="selectedElement.props.text"
+                rows="4"
+                class="apple-textarea"
+                placeholder="免责声明槽位，不是自由表达式"
+                @change="commitOverrides"
+              ></textarea>
+            </div>
+          </template>
+
+          <template v-else-if="selectedElement.type === 'seal'">
+            <div class="prop-title">防伪红章</div>
+            <div class="prop-field">
+              <label>印章医院名称</label>
+              <input v-model="selectedElement.props.hospitalName" class="apple-input-sm" @change="commitOverrides" />
+            </div>
+            <div class="prop-field">
+              <label>科室专用名称</label>
+              <input v-model="selectedElement.props.deptName" class="apple-input-sm" @change="commitOverrides" />
+            </div>
+            <div class="prop-row-2">
+              <div class="prop-field">
+                <label>直径 (mm)</label>
+                <input v-model.number="selectedElement.props.diameterMm" type="number" step="0.5" class="apple-input-sm" @change="commitOverrides" />
+              </div>
+              <div class="prop-field">
+                <label>透明度</label>
+                <input v-model.number="selectedElement.props.opacity" type="number" step="0.02" min="0.2" max="1" class="apple-input-sm" @change="commitOverrides" />
+              </div>
+            </div>
+            <div class="checkbox-row">
+              <input id="multiply-check" v-model="selectedElement.props.multiplyBlend" type="checkbox" @change="commitOverrides" />
+              <label for="multiply-check">正片叠底透字 (Multiply)</label>
+            </div>
+          </template>
+
+          <template v-else-if="selectedElement.type === 'signature_chain'">
+            <div class="prop-title">三级责任签名链</div>
+            <div class="prop-field">
+              <label>申请医师</label>
+              <input v-model="selectedElement.props.requestingPhysician" class="apple-input-sm" @change="commitOverrides" />
+            </div>
+            <div class="prop-field">
+              <label>采样人</label>
+              <input v-model="selectedElement.props.samplingPerson" class="apple-input-sm" @change="commitOverrides" />
+            </div>
+            <div class="prop-field">
+              <label>检验操作者</label>
+              <input v-model="selectedElement.props.operator" class="apple-input-sm" @change="commitOverrides" />
+            </div>
+            <div class="prop-field">
+              <label>审核者</label>
+              <input v-model="selectedElement.props.reviewer" class="apple-input-sm" @change="commitOverrides" />
+            </div>
+            <div class="prop-field">
+              <label>报告日期</label>
+              <input v-model="selectedElement.props.reportDate" class="apple-input-sm" @change="commitOverrides" />
+            </div>
+          </template>
+
+          <div class="engine-box">
+            <div class="prop-title">引擎投影框（只读 mm）</div>
+            <div class="prop-row-2">
+              <div class="prop-field">
+                <label>X (mm)</label>
+                <input :value="selectedElement.x" type="number" class="apple-input-sm" readonly />
+              </div>
+              <div class="prop-field">
+                <label>Y (mm)</label>
+                <input :value="selectedElement.y" type="number" class="apple-input-sm" readonly />
+              </div>
+            </div>
+            <div class="prop-row-2">
+              <div class="prop-field">
+                <label>宽度 W (mm)</label>
+                <input :value="selectedElement.width" type="number" class="apple-input-sm" readonly />
+              </div>
+              <div class="prop-field">
+                <label>高度 H (mm)</label>
+                <input :value="selectedElement.height" type="number" class="apple-input-sm" readonly />
+              </div>
+            </div>
+            <p class="prop-hint">坐标由排版引擎计算。槽位可上移下移改变文档流，不能自由画坐标。</p>
+            <div class="slot-order">
+              <button type="button" class="action-btn" @click="onMoveSlot(-1)">上移</button>
+              <button type="button" class="action-btn" @click="onMoveSlot(1)">下移</button>
+            </div>
+            <button type="button" class="action-btn danger" @click="deleteSelected">移除该槽位</button>
           </div>
-
-          <div class="inspector-body">
-            <!-- 几何布局 Tab -->
-            <div v-if="inspectorTab === 'geo'" class="prop-group">
-              <div class="prop-title">绝对物理毫米坐标 (mm)</div>
-              
-              <div class="prop-row-2">
-                <div class="prop-field">
-                  <label>X (mm)</label>
-                  <input v-model.number="selectedElement.x" type="number" step="0.5" class="apple-input-sm" />
-                </div>
-                <div class="prop-field">
-                  <label>Y (mm)</label>
-                  <input v-model.number="selectedElement.y" type="number" step="0.5" class="apple-input-sm" />
-                </div>
-              </div>
-
-              <div class="prop-row-2">
-                <div class="prop-field">
-                  <label>宽度 W (mm)</label>
-                  <input v-model.number="selectedElement.width" type="number" step="0.5" class="apple-input-sm" />
-                </div>
-                <div class="prop-field">
-                  <label>高度 H (mm)</label>
-                  <input v-model.number="selectedElement.height" type="number" step="0.5" class="apple-input-sm" />
-                </div>
-              </div>
-
-              <div class="prop-title" style="margin-top: 14px">对齐与图层层级</div>
-              <div class="align-btn-grid">
-                <button class="action-btn" title="居中对齐" @click="alignElement('center-x')">水平居中</button>
-                <button class="action-btn" title="左对齐" @click="alignElement('left')">左对齐</button>
-                <button class="action-btn" title="右对齐" @click="alignElement('right')">右对齐</button>
-                <button class="action-btn" title="移至顶层" @click="bringToFront">置于顶层</button>
-                <button class="action-btn" title="移至底层" @click="sendToBack">置于底层</button>
-                <button class="action-btn danger" title="删除元素" @click="deleteSelected">🗑️ 删除</button>
-              </div>
-            </div>
-
-            <!-- 样式与字体 Tab -->
-            <div v-else-if="inspectorTab === 'style'" class="prop-group">
-              <div class="prop-title">字体与排版</div>
-
-              <div class="prop-field">
-                <label>字号 (pt)</label>
-                <input v-model.number="selectedElement.props.fontSizePt" type="number" step="0.5" class="apple-input-sm" />
-              </div>
-
-              <div class="prop-field">
-                <label>对齐方式</label>
-                <select v-model="selectedElement.props.align" class="apple-select-sm">
-                  <option value="left">左对齐 (Left)</option>
-                  <option value="center">居中对齐 (Center)</option>
-                  <option value="right">右对齐 (Right)</option>
-                </select>
-              </div>
-
-              <div class="prop-field">
-                <label>文字内容 / 表达式</label>
-                <textarea
-                  v-model="selectedElement.props.text"
-                  rows="3"
-                  class="apple-textarea"
-                  placeholder="支持变量绑定如: {patient.name}"
-                ></textarea>
-              </div>
-            </div>
-
-            <!-- 医疗专项参数 Tab -->
-            <div v-else-if="inspectorTab === 'medical'" class="prop-group">
-              <!-- 表格专属 -->
-              <template v-if="selectedElement.type === 'snaking_table' || selectedElement.type === 'grid_table'">
-                <div class="prop-title">A5 双列折流 (Snaking Flow)</div>
-                <div class="checkbox-row">
-                  <input id="snake-check" v-model="selectedElement.props.snakingFlow" type="checkbox" />
-                  <label for="snake-check">启用两列折流平衡排版</label>
-                </div>
-
-                <div class="checkbox-row">
-                  <input id="compact-check" v-model="selectedElement.props.autoCompaction" type="checkbox" />
-                  <label for="compact-check">超行时启发式单页紧凑压缩</label>
-                </div>
-
-                <div class="prop-title" style="margin-top: 14px">行高与克隆表头</div>
-                <div class="prop-field">
-                  <label>基础行高 (mm)</label>
-                  <input v-model.number="selectedElement.props.rowHeightMm" type="number" step="0.5" class="apple-input-sm" />
-                </div>
-              </template>
-
-              <!-- 印章专属 -->
-              <template v-else-if="selectedElement.type === 'seal'">
-                <div class="prop-title">防伪红章参数</div>
-                <div class="prop-field">
-                  <label>印章医院名称</label>
-                  <input v-model="selectedElement.props.hospitalName" class="apple-input-sm" />
-                </div>
-                <div class="prop-field">
-                  <label>科室专用名称</label>
-                  <input v-model="selectedElement.props.deptName" class="apple-input-sm" />
-                </div>
-                <div class="checkbox-row">
-                  <input id="multiply-check" v-model="selectedElement.props.multiplyBlend" type="checkbox" />
-                  <label for="multiply-check">正片叠底透字模式 (Multiply)</label>
-                </div>
-              </template>
-
-              <!-- 条形码专属 -->
-              <template v-else-if="selectedElement.type === 'barcode'">
-                <div class="prop-title">条码标准与绑定</div>
-                <div class="prop-field">
-                  <label>码制类型</label>
-                  <select v-model="selectedElement.props.barcodeType" class="apple-select-sm">
-                    <option value="code128">Code 128 (国家卫健委推荐)</option>
-                    <option value="qr">QR Code (二维码)</option>
-                    <option value="ean13">EAN-13</option>
-                  </select>
-                </div>
-                <div class="prop-field">
-                  <label>条码数据值</label>
-                  <input v-model="selectedElement.props.codeValue" class="apple-input-sm" />
-                </div>
-              </template>
-
-              <!-- PACS 专属 -->
-              <template v-else-if="selectedElement.type === 'pacs_grid'">
-                <div class="prop-title">PACS 影像调校</div>
-                <p class="prop-hint">针对激光打印机和胶片优化窗宽窗位，避免大片发黑</p>
-                <button class="action-btn primary" @click="showPacsAdjust = true">
-                  🔬 打开 DICOM 窗宽窗位调校器
-                </button>
-              </template>
-
-              <template v-else>
-                <div class="empty-state">
-                  <span>当前组件无特殊医疗专项属性</span>
-                </div>
-              </template>
-            </div>
-          </div>
-        </template>
+        </div>
 
         <div v-else class="inspector-empty">
-          <div class="icon">👆</div>
-          <p>在画布中单击选中任意医疗组件，即可在此处精确微调绝对物理坐标与参数。</p>
+          <p>点纸上槽位或左侧已入单列表即可改属性。</p>
+          <div class="prop-title">页边距 (mm)</div>
+          <div class="prop-row-2">
+            <div class="prop-field">
+              <label>上</label>
+              <input v-model.number="marginDraft.top_mm" type="number" step="0.5" min="0" class="apple-input-sm" @change="commitMargins" />
+            </div>
+            <div class="prop-field">
+              <label>下</label>
+              <input v-model.number="marginDraft.bottom_mm" type="number" step="0.5" min="0" class="apple-input-sm" @change="commitMargins" />
+            </div>
+          </div>
+          <div class="prop-row-2">
+            <div class="prop-field">
+              <label>左</label>
+              <input v-model.number="marginDraft.left_mm" type="number" step="0.5" min="0" class="apple-input-sm" @change="commitMargins" />
+            </div>
+            <div class="prop-field">
+              <label>右</label>
+              <input v-model.number="marginDraft.right_mm" type="number" step="0.5" min="0" class="apple-input-sm" @change="commitMargins" />
+            </div>
+          </div>
+          <p class="prop-hint">
+            折流分栏线在表格上，不是纸张几何中心。左列排满后转入右列。打印几何由引擎排版，画布只投影。
+          </p>
+          <p class="prop-hint">{{ constraintSummary }}</p>
         </div>
       </div>
     </div>
@@ -551,6 +740,43 @@ import FormulaLabModal from '../components/medical/FormulaLabModal.vue'
 import PacsAdjustModal from '../components/medical/PacsAdjustModal.vue'
 import ArchiveModal from '../components/common/ArchiveModal.vue'
 import BatchPrintModal from '../components/common/BatchPrintModal.vue'
+import ConstraintInspector from '../components/common/ConstraintInspector.vue'
+import {
+  CANVAS_TO_AST_KIND,
+  CLOSED_TOOLBOX,
+  addLabItem,
+  addPatientField,
+  canDispatchPrint,
+  createPresetTemplate,
+  defaultPatientFields,
+  formatViolations,
+  initLayoutEngine,
+  insertUniqueSlot,
+  isClosedCanvasType,
+  isForbiddenLowcodeType,
+  layoutEngineSource,
+  layoutTemplateFrames,
+  movePatientField,
+  moveSlot,
+  occupiedKinds,
+  patchMargins,
+  patchSlotParams,
+  PATIENT_FIELD_CATALOG,
+  projectTemplateToSlots,
+  removeLabItem,
+  removePatientField,
+  removeSlot,
+  reorderSlotsByPreviewY,
+  updateLabItem,
+  updatePatientField,
+  validateReportTemplate,
+  type ClosedCanvasType,
+  type LabItemRow,
+  type PatientField,
+  type PatientFieldKey,
+  type ReportTemplate,
+  type TextAlign,
+} from '../domain'
 
 defineEmits<{
   (e: 'switch-view', view: 'wizard' | 'canvas'): void
@@ -578,8 +804,25 @@ const showPacsAdjust = ref(false)
 const showArchive = ref(false)
 const showBatchPrint = ref(false)
 
-const inspectorTab = ref<'geo' | 'style' | 'medical'>('geo')
 const selectedElementId = ref<string | null>(null)
+const draggingSplit = ref(false)
+const paperRef = ref<HTMLElement | null>(null)
+const pendingPatientKey = ref<PatientFieldKey>('report_no')
+const dragSlot = ref<{ id: string; startY: number; origY: number; moved: boolean } | null>(null)
+const suppressClick = ref(false)
+
+const alignOptions: Array<{ id: TextAlign; label: string }> = [
+  { id: 'left', label: '居左' },
+  { id: 'center', label: '居中' },
+  { id: 'right', label: '居右' },
+]
+
+const pacsPresets = [
+  { label: '1', cols: 1, rows: 1 },
+  { label: '2', cols: 2, rows: 1 },
+  { label: '4', cols: 2, rows: 2 },
+  { label: '6', cols: 3, rows: 2 },
+] as const
 
 // 屏幕渲染比例：以 96 DPI 为基准 (1 inch = 25.4mm, 96 / 25.4 = 3.7795 px/mm)
 const mmToPx = 3.7795
@@ -600,108 +843,317 @@ const gridOverlayStyle = computed(() => {
   }
 })
 
-// 画布元素模型接口
 interface CanvasElement {
   id: string
   type: string
   name: string
-  x: number // mm
-  y: number // mm
-  width: number // mm
-  height: number // mm
+  x: number
+  y: number
+  width: number
+  height: number
   zIndex: number
   props: Record<string, any>
 }
 
-// 初始默认 A5 横向化验单元素集合
-const elements = ref<CanvasElement[]>([
-  {
-    id: 'el-1',
-    type: 'header',
-    name: '医院主标头',
-    x: 10,
-    y: 8,
-    width: 190,
-    height: 18,
-    zIndex: 1,
-    props: {
-      hospitalName: '北京协和医学院附属第一医院',
-      reportTitle: '临床生化检验报告单 (CLINICAL BIOCHEMISTRY)'
-    }
-  },
-  {
-    id: 'el-2',
-    type: 'demographics',
-    name: '患者信息卡',
-    x: 10,
-    y: 28,
-    width: 190,
-    height: 12,
-    zIndex: 2,
-    props: {}
-  },
-  {
-    id: 'el-3',
-    type: 'snaking_table',
-    name: 'A5 双列折流表',
-    x: 10,
-    y: 42,
-    width: 190,
-    height: 75,
-    zIndex: 3,
-    props: {
-      snakingFlow: true,
-      autoCompaction: true,
-      rowHeightMm: 5.5
-    }
-  },
-  {
-    id: 'el-4',
-    type: 'barcode',
-    name: '条形码',
-    x: 145,
-    y: 9,
-    width: 50,
-    height: 16,
-    zIndex: 10,
-    props: {
-      barcodeType: 'code128',
-      codeValue: 'MZ20260908001'
-    }
-  },
-  {
-    id: 'el-5',
-    type: 'seal',
-    name: '防伪检验红章',
-    x: 155,
-    y: 110,
-    width: 32,
-    height: 32,
-    zIndex: 20,
-    props: {
-      hospitalName: '北京协和医学院附属第一医院',
-      deptName: '检验科防伪专用章',
-      multiplyBlend: true
-    }
-  },
-  {
-    id: 'el-6',
-    type: 'signature_chain',
-    name: '三级责任医师签名',
-    x: 10,
-    y: 124,
-    width: 140,
-    height: 14,
-    zIndex: 5,
-    props: {}
+const reportTemplate = ref<ReportTemplate>(createPresetTemplate('lis_a5'))
+const elements = ref<CanvasElement[]>([])
+
+function relayout(selectKind?: string) {
+  const prev = selectKind || elements.value.find((el) => el.id === selectedElementId.value)?.type
+  elements.value = projectTemplateToSlots(reportTemplate.value).map((slot) => ({
+    ...slot,
+    props: { ...slot.props },
+  }))
+  if (prev) {
+    const match = elements.value.find((el) => el.type === prev)
+    selectedElementId.value = match?.id ?? null
   }
-])
+}
+
+function selectSlotByType(type: string) {
+  const match = elements.value.find((el) => el.type === type)
+  if (match) selectedElementId.value = match.id
+}
+
+function selectDefaultSlot() {
+  selectSlotByType('snaking_table')
+  if (!selectedElementId.value && elements.value[0]) {
+    selectedElementId.value = elements.value[0].id
+  }
+}
+
+function bannerFields(el: CanvasElement | null): PatientField[] {
+  if (!el) return []
+  const fields = el.props.fields
+  return Array.isArray(fields) && fields.length ? fields : defaultPatientFields()
+}
+
+const unusedPatientKeys = computed(() => {
+  const used = new Set(bannerFields(selectedElement.value).map((f) => f.key))
+  const keys = Object.keys(PATIENT_FIELD_CATALOG) as Array<Exclude<PatientFieldKey, 'custom'>>
+  const leftover: Array<{ key: PatientFieldKey; label: string }> = keys
+    .filter((key) => !used.has(key))
+    .map((key) => ({ key, label: PATIENT_FIELD_CATALOG[key].label }))
+  leftover.push({ key: 'custom', label: '自定义字段' })
+  return leftover
+})
+
+function setHeaderAlign(align: TextAlign) {
+  if (!selectedElement.value) return
+  selectedElement.value.props.align = align
+  commitOverrides()
+}
+
+function onLogoFile(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file || !selectedElement.value) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    if (!selectedElement.value) return
+    selectedElement.value.props.logoDataUrl = String(reader.result || '')
+    commitOverrides()
+  }
+  reader.readAsDataURL(file)
+}
+
+function clearLogo() {
+  if (!selectedElement.value) return
+  selectedElement.value.props.logoDataUrl = ''
+  commitOverrides()
+}
+
+function onAddPatientField() {
+  const key = pendingPatientKey.value
+  if (!key) return
+  reportTemplate.value = addPatientField(reportTemplate.value, key)
+  relayout('demographics')
+  const leftover = unusedPatientKeys.value.find((opt) => opt.key !== key)
+  pendingPatientKey.value = leftover?.key || 'custom'
+}
+
+function onRemovePatientField(index: number) {
+  reportTemplate.value = removePatientField(reportTemplate.value, index)
+  relayout('demographics')
+}
+
+function onMovePatientField(index: number, delta: number) {
+  reportTemplate.value = movePatientField(reportTemplate.value, index, delta)
+  relayout('demographics')
+}
+
+function onPatientFieldInput(index: number, field: 'label' | 'preview_value', event: Event) {
+  reportTemplate.value = updatePatientField(reportTemplate.value, index, {
+    [field]: (event.target as HTMLInputElement).value,
+  })
+  relayout('demographics')
+}
+
+function onMoveSlot(delta: number) {
+  const current = selectedElement.value
+  if (!current || !isClosedCanvasType(current.type)) return
+  reportTemplate.value = moveSlot(reportTemplate.value, CANVAS_TO_AST_KIND[current.type], delta)
+  relayout(current.type)
+}
+
+function startSlotReorder(e: MouseEvent, el: CanvasElement) {
+  if (e.button !== 0) return
+  if ((e.target as HTMLElement).closest('.split-handle')) return
+  selectElement(el)
+  dragSlot.value = { id: el.id, startY: e.clientY, origY: el.y, moved: false }
+}
+
+function onWindowMouseMove(e: MouseEvent) {
+  const drag = dragSlot.value
+  if (!drag) return
+  const dyMm = (e.clientY - drag.startY) / (mmToPx * zoomScale.value)
+  if (!drag.moved && Math.abs(dyMm) < 1.2) return
+  drag.moved = true
+  suppressClick.value = true
+  const target = elements.value.find((el) => el.id === drag.id)
+  if (target) target.y = Math.max(0, drag.origY + dyMm)
+}
+
+function onWindowMouseUp() {
+  const drag = dragSlot.value
+  dragSlot.value = null
+  if (!drag?.moved) return
+  reportTemplate.value = reorderSlotsByPreviewY(reportTemplate.value, elements.value)
+  relayout(elements.value.find((el) => el.id === drag.id)?.type)
+  window.setTimeout(() => {
+    suppressClick.value = false
+  }, 0)
+}
+
+const occupied = computed(() => occupiedKinds(reportTemplate.value))
+
+const layoutStatus = computed(() => layoutTemplateFrames(reportTemplate.value))
+
+const engineBadge = computed(() => {
+  const src = layoutEngineSource() === 'wasm' ? 'WASM' : '引擎'
+  const row = layoutStatus.value.compacted_row_height_mm
+  const rowText = row ? ` · 折流行高 ${row.toFixed(2)}mm` : ''
+  return `${src}投影 ${layoutStatus.value.page_count} 页${rowText}`
+})
+
+const constraintSummary = computed(() => formatViolations(validateReportTemplate(reportTemplate.value)))
+
+const rightPanelTab = ref<'props' | 'constraints'>('props')
 
 const selectedElement = computed(() => {
   return elements.value.find((e) => e.id === selectedElementId.value) || null
 })
 
+const selectedAstElementIndex = computed(() => {
+  if (!selectedElement.value) return 0
+  const t = selectedElement.value.type as ClosedCanvasType
+  const kind = CANVAS_TO_AST_KIND[t]
+  if (!kind) return 0
+  const idx = reportTemplate.value.elements.findIndex((el) => el.kind === kind)
+  return idx >= 0 ? idx : 0
+})
+
+function handleConstraintUpdate(updated: ReportTemplate) {
+  reportTemplate.value = updated
+  relayout()
+}
+
+const labItems = computed<LabItemRow[]>(() => {
+  const el = selectedElement.value
+  if (!el || el.type !== 'snaking_table' || !Array.isArray(el.props.items)) return []
+  return el.props.items as LabItemRow[]
+})
+
+const marginDraft = ref({
+  top_mm: reportTemplate.value.margins.top_mm,
+  right_mm: reportTemplate.value.margins.right_mm,
+  bottom_mm: reportTemplate.value.margins.bottom_mm,
+  left_mm: reportTemplate.value.margins.left_mm,
+})
+
+function syncMarginDraft() {
+  marginDraft.value = {
+    top_mm: reportTemplate.value.margins.top_mm,
+    right_mm: reportTemplate.value.margins.right_mm,
+    bottom_mm: reportTemplate.value.margins.bottom_mm,
+    left_mm: reportTemplate.value.margins.left_mm,
+  }
+}
+
+function commitMargins() {
+  reportTemplate.value = patchMargins(reportTemplate.value, {
+    top_mm: Number(marginDraft.value.top_mm),
+    right_mm: Number(marginDraft.value.right_mm),
+    bottom_mm: Number(marginDraft.value.bottom_mm),
+    left_mm: Number(marginDraft.value.left_mm),
+  })
+  relayout()
+  syncMarginDraft()
+}
+
+function snakingPreview(el: CanvasElement) {
+  const items = (Array.isArray(el.props.items) ? el.props.items : []) as LabItemRow[]
+  const mid = Math.ceil(items.length / 2)
+  return { left: items.slice(0, mid), right: items.slice(mid) }
+}
+
+function splitHandleLeft(el: CanvasElement) {
+  const ratio = Math.min(0.72, Math.max(0.28, Number(el.props.leftRatio || 0.5)))
+  return `${ratio * 100}%`
+}
+
+type SplitDragState = {
+  elId: string
+  startX: number
+  startRatio: number
+  widthPx: number
+}
+
+const splitDrag = ref<SplitDragState | null>(null)
+
+function clampLeftRatio(value: number) {
+  return Math.round(Math.min(0.72, Math.max(0.28, value)) * 1000) / 1000
+}
+
+function onLeftRatioLive() {
+  const el = selectedElement.value
+  if (!el || el.type !== 'snaking_table') return
+  el.props.leftRatio = clampLeftRatio(Number(el.props.leftRatio || 0.5))
+}
+
+function startSplitDrag(e: MouseEvent, el: CanvasElement) {
+  selectElement(el)
+  const table = (e.currentTarget as HTMLElement).parentElement
+  const widthPx = table?.getBoundingClientRect().width || 1
+  draggingSplit.value = true
+  document.body.style.cursor = 'col-resize'
+  splitDrag.value = {
+    elId: el.id,
+    startX: e.clientX,
+    startRatio: Number(el.props.leftRatio || 0.5),
+    widthPx,
+  }
+  window.addEventListener('mousemove', onSplitMove)
+  window.addEventListener('mouseup', onSplitUp)
+}
+
+function onSplitMove(e: MouseEvent) {
+  const drag = splitDrag.value
+  if (!drag) return
+  const el = elements.value.find((item) => item.id === drag.elId)
+  if (!el) return
+  const delta = (e.clientX - drag.startX) / drag.widthPx
+  el.props.leftRatio = clampLeftRatio(drag.startRatio + delta)
+}
+
+function onSplitUp() {
+  window.removeEventListener('mousemove', onSplitMove)
+  window.removeEventListener('mouseup', onSplitUp)
+  document.body.style.cursor = ''
+  draggingSplit.value = false
+  const drag = splitDrag.value
+  const el = drag ? elements.value.find((item) => item.id === drag.elId) : selectedElement.value
+  splitDrag.value = null
+  if (el && isClosedCanvasType(el.type)) {
+    reportTemplate.value = patchSlotParams(reportTemplate.value, CANVAS_TO_AST_KIND[el.type], el.props)
+    relayout(el.type)
+  }
+}
+
+function onAddLabItem() {
+  reportTemplate.value = addLabItem(reportTemplate.value)
+  relayout('snaking_table')
+}
+
+function onRemoveLabItem(index: number) {
+  reportTemplate.value = removeLabItem(reportTemplate.value, index)
+  relayout('snaking_table')
+}
+
+function onLabItemInput(
+  index: number,
+  field: 'item_name' | 'item_abbr' | 'result_value' | 'ref_range_display' | 'unit' | 'alert_flag',
+  event: Event,
+) {
+  const value = (event.target as HTMLInputElement).value
+  reportTemplate.value = updateLabItem(reportTemplate.value, index, { [field]: value })
+  relayout('snaking_table')
+}
+
+function isPacsPresetActive(preset: { cols: number; rows: number }) {
+  const el = selectedElement.value
+  if (!el || el.type !== 'pacs_grid') return false
+  return Number(el.props.gridCols) === preset.cols && Number(el.props.gridRows) === preset.rows
+}
+
+function applyPacsPreset(preset: { cols: number; rows: number }) {
+  if (!selectedElement.value || selectedElement.value.type !== 'pacs_grid') return
+  selectedElement.value.props.gridCols = preset.cols
+  selectedElement.value.props.gridRows = preset.rows
+  commitOverrides()
+}
+
 function selectElement(el: CanvasElement) {
+  if (suppressClick.value) return
   selectedElementId.value = el.id
 }
 
@@ -710,7 +1162,12 @@ function clearSelection() {
 }
 
 function handlePaperChange() {
-  clearSelection()
+  const paper = paperPresets[currentPaperKey.value]
+  reportTemplate.value = {
+    ...reportTemplate.value,
+    paper_size: { width_mm: paper.width, height_mm: paper.height },
+  }
+  relayout()
 }
 
 function adjustZoom(delta: number) {
@@ -736,277 +1193,71 @@ function getElementStyle(el: CanvasElement) {
   }
 }
 
-// 物料工具箱添加新元素
+function commitOverrides() {
+  if (!selectedElement.value || !isClosedCanvasType(selectedElement.value.type)) return
+  const kind = CANVAS_TO_AST_KIND[selectedElement.value.type]
+  reportTemplate.value = patchSlotParams(reportTemplate.value, kind, selectedElement.value.props)
+  relayout(selectedElement.value.type)
+}
+
 function addElement(type: string) {
-  const id = `el-${Date.now().toString().slice(-4)}`
-  let width = 60
-  let height = 30
-  let name = '新元素'
-  const props: Record<string, any> = {}
-
-  switch (type) {
-    case 'header':
-      name = '医院页眉'
-      width = 190
-      height = 18
-      props.hospitalName = '北京协和医学院附属第一医院'
-      props.reportTitle = '临床生化检验报告单'
-      break
-    case 'demographics':
-      name = '患者信息条'
-      width = 190
-      height = 12
-      break
-    case 'label':
-      name = '文本标签'
-      width = 80
-      height = 10
-      props.text = '备注：请遵医嘱按时复查。'
-      props.fontSizePt = 9
-      props.align = 'left'
-      break
-    case 'perforation':
-      name = '针打撕纸线'
-      width = 190
-      height = 6
-      break
-    case 'snaking_table':
-      name = 'A5 双列折流表'
-      width = 190
-      height = 70
-      props.snakingFlow = true
-      props.autoCompaction = true
-      props.rowHeightMm = 5.5
-      break
-    case 'grid_table':
-      name = '常规项目表'
-      width = 190
-      height = 50
-      break
-    case 'barcode':
-      name = '检验条形码'
-      width = 45
-      height = 15
-      props.barcodeType = 'code128'
-      props.codeValue = '20260908888'
-      break
-    case 'teg_chart':
-      name = 'TEG 弹力图'
-      width = 85
-      height = 40
-      break
-    case 'pacs_grid':
-      name = 'PACS 影像网格'
-      width = 110
-      height = 65
-      break
-    case 'seal':
-      name = '防伪检验红章'
-      width = 30
-      height = 30
-      props.hospitalName = '北京协和医学院附属第一医院'
-      props.deptName = '检验科防伪专用章'
-      props.multiplyBlend = true
-      break
-    case 'signature_chain':
-      name = '三级签名链'
-      width = 140
-      height = 12
-      break
+  if (isForbiddenLowcodeType(type) || !isClosedCanvasType(type)) {
+    alert('拒绝开放物料。新视觉类型必须先加入 Rust ReportElement，再投影到画布槽位。')
+    return
   }
-
-  // 放置在当前纸张视觉合理居中偏上位置
-  const newEl: CanvasElement = {
-    id,
-    type,
-    name,
-    x: Math.max(5, Math.round((paperWidthMm.value - width) / 2)),
-    y: Math.max(5, Math.round((paperHeightMm.value - height) / 2)),
-    width,
-    height,
-    zIndex: elements.value.length + 1,
-    props
+  const kind = CANVAS_TO_AST_KIND[type as ClosedCanvasType]
+  if (occupied.value.has(kind)) {
+    alert('该槽位已在单据中，不能重复添加。')
+    return
   }
-
-  elements.value.push(newEl)
-  selectedElementId.value = newEl.id
-}
-
-// 拖拽与缩放逻辑 (绝对毫米坐标吸附)
-let isDragging = false
-let dragStartMouseX = 0
-let dragStartMouseY = 0
-let dragStartElX = 0
-let dragStartElY = 0
-
-function snapValue(val: number): number {
-  if (snapGridMm.value <= 0) return Math.round(val * 10) / 10
-  const step = snapGridMm.value
-  return Math.round(val / step) * step
-}
-
-function startDrag(el: CanvasElement, e: MouseEvent) {
-  selectElement(el)
-  isDragging = true
-  dragStartMouseX = e.clientX
-  dragStartMouseY = e.clientY
-  dragStartElX = el.x
-  dragStartElY = el.y
-
-  window.addEventListener('mousemove', onDragging)
-  window.addEventListener('mouseup', stopDrag)
-}
-
-function onDragging(e: MouseEvent) {
-  if (!isDragging || !selectedElement.value) return
-  const deltaPxX = e.clientX - dragStartMouseX
-  const deltaPxY = e.clientY - dragStartMouseY
-
-  const deltaMmX = deltaPxX / (mmToPx * zoomScale.value)
-  const deltaMmY = deltaPxY / (mmToPx * zoomScale.value)
-
-  let newX = dragStartElX + deltaMmX
-  let newY = dragStartElY + deltaMmY
-
-  newX = snapValue(newX)
-  newY = snapValue(newY)
-
-  // 边界保护
-  newX = Math.max(0, Math.min(paperWidthMm.value - selectedElement.value.width, newX))
-  newY = Math.max(0, Math.min(paperHeightMm.value - selectedElement.value.height, newY))
-
-  selectedElement.value.x = newX
-  selectedElement.value.y = newY
-}
-
-function stopDrag() {
-  isDragging = false
-  window.removeEventListener('mousemove', onDragging)
-  window.removeEventListener('mouseup', stopDrag)
-}
-
-// 调整尺寸 (8向手柄)
-let isResizing = false
-let resizeHandle = ''
-let resizeStartMouseX = 0
-let resizeStartMouseY = 0
-let resizeStartX = 0
-let resizeStartY = 0
-let resizeStartW = 0
-let resizeStartH = 0
-
-function startResize(el: CanvasElement, handle: string, e: MouseEvent) {
-  selectElement(el)
-  isResizing = true
-  resizeHandle = handle
-  resizeStartMouseX = e.clientX
-  resizeStartMouseY = e.clientY
-  resizeStartX = el.x
-  resizeStartY = el.y
-  resizeStartW = el.width
-  resizeStartH = el.height
-
-  window.addEventListener('mousemove', onResizing)
-  window.addEventListener('mouseup', stopResize)
-}
-
-function onResizing(e: MouseEvent) {
-  if (!isResizing || !selectedElement.value) return
-  const deltaPxX = e.clientX - resizeStartMouseX
-  const deltaPxY = e.clientY - resizeStartMouseY
-  const deltaMmX = deltaPxX / (mmToPx * zoomScale.value)
-  const deltaMmY = deltaPxY / (mmToPx * zoomScale.value)
-
-  let x = resizeStartX
-  let y = resizeStartY
-  let w = resizeStartW
-  let h = resizeStartH
-
-  if (resizeHandle.includes('e')) w = snapValue(resizeStartW + deltaMmX)
-  if (resizeHandle.includes('s')) h = snapValue(resizeStartH + deltaMmY)
-  if (resizeHandle.includes('w')) {
-    const diff = snapValue(deltaMmX)
-    w = resizeStartW - diff
-    x = resizeStartX + diff
-  }
-  if (resizeHandle.includes('n')) {
-    const diff = snapValue(deltaMmY)
-    h = resizeStartH - diff
-    y = resizeStartY + diff
-  }
-
-  if (w >= 10 && x >= 0 && x + w <= paperWidthMm.value) {
-    selectedElement.value.x = x
-    selectedElement.value.width = w
-  }
-  if (h >= 5 && y >= 0 && y + h <= paperHeightMm.value) {
-    selectedElement.value.y = y
-    selectedElement.value.height = h
-  }
-}
-
-function stopResize() {
-  isResizing = false
-  window.removeEventListener('mousemove', onResizing)
-  window.removeEventListener('mouseup', stopResize)
-}
-
-// 对齐操作
-function alignElement(mode: 'left' | 'right' | 'center-x') {
-  if (!selectedElement.value) return
-  if (mode === 'left') selectedElement.value.x = 10
-  else if (mode === 'right') selectedElement.value.x = paperWidthMm.value - selectedElement.value.width - 10
-  else if (mode === 'center-x') {
-    selectedElement.value.x = Math.round((paperWidthMm.value - selectedElement.value.width) / 2)
-  }
-}
-
-function bringToFront() {
-  if (!selectedElement.value) return
-  const maxZ = Math.max(...elements.value.map((e) => e.zIndex), 0)
-  selectedElement.value.zIndex = maxZ + 1
-}
-
-function sendToBack() {
-  if (!selectedElement.value) return
-  selectedElement.value.zIndex = 0
+  reportTemplate.value = insertUniqueSlot(reportTemplate.value, kind)
+  relayout(type)
 }
 
 function deleteSelected() {
-  if (!selectedElementId.value) return
-  elements.value = elements.value.filter((e) => e.id !== selectedElementId.value)
+  const current = selectedElement.value
+  if (!current || !isClosedCanvasType(current.type)) return
+  reportTemplate.value = removeSlot(reportTemplate.value, CANVAS_TO_AST_KIND[current.type])
   selectedElementId.value = null
+  relayout()
 }
 
-// 键盘快捷键监听
 function handleKeyDown(e: KeyboardEvent) {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-
   if (e.key === 'Delete' || e.key === 'Backspace') {
     deleteSelected()
-  } else if (selectedElement.value) {
-    const step = e.shiftKey ? 5 : 1
-    if (e.key === 'ArrowLeft') selectedElement.value.x = Math.max(0, selectedElement.value.x - step)
-    if (e.key === 'ArrowRight') selectedElement.value.x = Math.min(paperWidthMm.value - selectedElement.value.width, selectedElement.value.x + step)
-    if (e.key === 'ArrowUp') selectedElement.value.y = Math.max(0, selectedElement.value.y - step)
-    if (e.key === 'ArrowDown') selectedElement.value.y = Math.min(paperHeightMm.value - selectedElement.value.height, selectedElement.value.y + step)
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('mousemove', onWindowMouseMove)
+  window.addEventListener('mouseup', onWindowMouseUp)
+  await initLayoutEngine()
+  relayout()
+  selectDefaultSlot()
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('mousemove', onSplitMove)
+  window.removeEventListener('mouseup', onSplitUp)
+  window.removeEventListener('mousemove', onWindowMouseMove)
+  window.removeEventListener('mouseup', onWindowMouseUp)
 })
 
-// 弹窗回调与交互
+relayout()
+selectDefaultSlot()
+
 function handleFormulaInsert(item: { name: string; value: string; unit: string; refRange: string; flag: string }) {
-  addElement('label')
-  if (selectedElement.value) {
-    selectedElement.value.props.text = `【公式计算】${item.name}: ${item.value} ${item.unit} (参考区间: ${item.refRange}) ${item.flag}`
+  const notes = 'NotesFooter' as const
+  if (!occupied.value.has(notes)) {
+    reportTemplate.value = insertUniqueSlot(reportTemplate.value, notes)
   }
+  reportTemplate.value = patchSlotParams(reportTemplate.value, notes, {
+    text: `【公式计算结果投影】${item.name}: ${item.value} ${item.unit} (参考区间: ${item.refRange}) ${item.flag}`,
+  })
+  relayout('notes')
 }
 
 function handlePacsApply() {
@@ -1040,12 +1291,15 @@ function handleImportFile(e: Event) {
   reader.onload = (event) => {
     try {
       const content = JSON.parse(event.target?.result as string)
-      if (content.elements) {
-        elements.value = content.elements
-        if (content.paper) currentPaperKey.value = content.paper
-        alert('成功导入本地模板！')
+      if (content.report_type && Array.isArray(content.elements)) {
+        reportTemplate.value = content as ReportTemplate
+        syncMarginDraft()
+        relayout()
+        alert('已载入封闭 ReportTemplate AST。画布是引擎投影，不是打印源。')
         showArchive.value = false
+        return
       }
+      alert('请导入 .medprint.json 封闭 AST，不再接受自由画布坐标 JSON。')
     } catch {
       alert('模板 JSON 格式解析失败')
     }
@@ -1054,22 +1308,22 @@ function handleImportFile(e: Event) {
 }
 
 function exportJsonTemplate() {
-  const data = JSON.stringify({
-    paper: currentPaperKey.value,
-    widthMm: paperWidthMm.value,
-    heightMm: paperHeightMm.value,
-    elements: elements.value
-  }, null, 2)
-  const blob = new Blob([data], { type: 'application/json' })
+  const template = reportTemplate.value
+  const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `medprint-template-${Date.now()}.json`
+  a.download = `medprint-template-${template.id}.medprint.json`
   a.click()
   URL.revokeObjectURL(url)
 }
 
 function handlePrintPdf() {
+  const issues = validateReportTemplate(reportTemplate.value)
+  if (!canDispatchPrint(issues)) {
+    alert(`打印已拦截：\n${formatViolations(issues)}`)
+    return
+  }
   showBatchPrint.value = true
 }
 </script>
@@ -1079,21 +1333,22 @@ function handlePrintPdf() {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #eef0f3;
+  background: var(--fill);
   user-select: none;
 }
 
-/* 顶部 macOS 质感工具条 */
 .pro-toolbar {
-  height: 48px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  height: 44px;
+  flex-shrink: 0;
+  background: var(--glass-heavy);
+  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  border-bottom: 1px solid var(--separator);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  padding: 0 14px;
+  gap: 12px;
 }
 
 .toolbar-left,
@@ -1101,52 +1356,49 @@ function handlePrintPdf() {
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .divider {
   width: 1px;
-  height: 20px;
-  background: rgba(0, 0, 0, 0.1);
-  margin: 0 4px;
+  height: 16px;
+  background: var(--separator);
+  margin: 0 2px;
 }
 
 .tool-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  border: 1px solid #d2d2d7;
-  background: #ffffff;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--separator);
+  background: #fff;
   font-size: 12px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--label);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--spring);
 }
-
-.tool-btn:hover {
-  background: #f5f5f7;
-}
+.tool-btn:hover { background: var(--fill-grouped); }
+.tool-btn:active { transform: scale(0.97); }
 
 .paper-selector {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-
 .paper-selector .label {
   font-size: 11px;
-  color: #6e6e73;
+  color: var(--label-tertiary);
 }
 
 .apple-select-sm {
   padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid #d2d2d7;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--separator-opaque);
   font-size: 11px;
-  background: #ffffff;
+  background: #fff;
   outline: none;
 }
 
@@ -1154,220 +1406,241 @@ function handlePrintPdf() {
   display: flex;
   align-items: center;
   gap: 2px;
-  background: #f0f0f2;
-  border-radius: 6px;
+  background: var(--fill-grouped);
+  border-radius: var(--radius-sm);
   padding: 2px;
 }
-
 .zoom-btn {
-  width: 22px;
+  width: 24px;
   height: 22px;
-  border-radius: 4px;
+  border-radius: 5px;
   border: none;
   background: transparent;
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
-  color: #333;
+  color: var(--label);
+  transition: background var(--duration-fast) var(--ease-out);
 }
-
-.zoom-btn:hover {
-  background: rgba(0, 0, 0, 0.08);
-}
-
+.zoom-btn:hover { background: rgba(0, 0, 0, 0.06); }
 .zoom-text {
   font-size: 11px;
   font-weight: 600;
-  padding: 0 4px;
-  color: #1d1d1f;
+  padding: 0 6px;
+  min-width: 36px;
+  text-align: center;
 }
-
 .zoom-reset-btn {
   font-size: 10px;
   border: none;
   background: rgba(0, 0, 0, 0.05);
-  border-radius: 3px;
-  padding: 2px 4px;
+  border-radius: 5px;
+  padding: 3px 6px;
   cursor: pointer;
-  color: #555;
+  color: var(--label-secondary);
 }
 
 .grid-controls {
   display: flex;
-  background: #f0f0f2;
-  border-radius: 6px;
+  background: var(--fill-grouped);
+  border-radius: var(--radius-sm);
   padding: 2px;
 }
-
 .grid-pill {
-  padding: 3px 8px;
+  padding: 4px 9px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 550;
   border: none;
   background: transparent;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  color: #666;
+  color: var(--label-secondary);
+  transition: background var(--duration) var(--spring), color var(--duration-fast) var(--ease-out), box-shadow var(--duration) var(--ease-out);
 }
-
 .grid-pill.active {
-  background: #ffffff;
-  color: #0071e3;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #fff;
+  color: var(--blue);
+  box-shadow: var(--shadow-thumb);
 }
 
 .toggle-guide-btn {
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid #d2d2d7;
-  background: #ffffff;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--separator-opaque);
+  background: #fff;
   font-size: 11px;
-  color: #666;
+  color: var(--label-secondary);
   cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+.toggle-guide-btn.active {
+  background: var(--blue-soft);
+  border-color: rgba(0, 113, 227, 0.28);
+  color: var(--blue);
+  font-weight: 600;
 }
 
-.toggle-guide-btn.active {
-  background: #e8f2ff;
-  border-color: #0071e3;
-  color: #0071e3;
+.engine-badge {
+  font-size: 11px;
   font-weight: 600;
+  color: var(--blue);
+  background: var(--blue-soft);
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
 }
 
 .tool-action-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
-  border-radius: 6px;
-  border: 1px solid #d2d2d7;
-  background: #ffffff;
-  font-size: 11px;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--separator);
+  background: #fff;
+  font-size: 11.5px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--label);
   cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--spring);
 }
-
-.tool-action-btn:hover {
-  background: #f5f5f7;
-}
-
+.tool-action-btn:hover { background: var(--fill-grouped); }
+.tool-action-btn:active { transform: scale(0.97); }
 .tool-action-btn.primary {
-  background: #0071e3;
-  color: #ffffff;
+  background: var(--blue);
+  color: #fff;
   border: none;
-  box-shadow: 0 2px 5px rgba(0, 113, 227, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.22);
 }
+.tool-action-btn.primary:hover { background: var(--blue-hover); }
 
-.tool-action-btn.primary:hover {
-  background: #0077ed;
-}
-
-/* 主工作区布局 */
 .pro-main-area {
   flex: 1;
+  min-height: 0;
   display: flex;
   overflow: hidden;
 }
 
-/* 左侧物料工具箱 */
 .toolbox-panel {
-  width: 200px;
-  background: #ffffff;
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  width: 212px;
+  flex-shrink: 0;
+  background: var(--glass-heavy);
+  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  border-right: 1px solid var(--separator);
   display: flex;
   flex-direction: column;
-  padding: 12px;
-  gap: 12px;
+  padding: 14px 12px;
+  gap: 10px;
   overflow-y: auto;
+  animation: apple-rise var(--duration-slow) var(--ease-out) both;
 }
 
 .panel-header {
-  font-size: 12px;
-  font-weight: 700;
-  color: #1d1d1f;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--label);
+  letter-spacing: -0.2px;
+  padding: 2px 4px 8px;
 }
 
 .group-title {
-  font-size: 10px;
-  font-weight: 700;
-  color: #86868b;
-  text-transform: uppercase;
-  margin: 6px 0 4px;
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--label-tertiary);
+  margin: 10px 4px 6px;
 }
 
-.tool-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-
-.tool-item {
+.tool-list {
   display: flex;
   flex-direction: column;
+  gap: 3px;
+}
+
+.tool-row {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 8px 4px;
-  background: #fbfbfd;
-  border: 1px solid #e5e5ea;
-  border-radius: 8px;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
   cursor: pointer;
-  transition: all 0.15s ease;
-  gap: 4px;
+  text-align: left;
+  transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--spring);
 }
-
-.tool-item:hover {
-  background: #f0f0f5;
-  border-color: #0071e3;
+.tool-row:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.045);
 }
-
-.tool-item .icon {
-  font-size: 16px;
+.tool-row:active:not(:disabled) {
+  transform: scale(0.985);
 }
-
-.tool-item span {
+.tool-row.occupied {
+  cursor: pointer;
+}
+.tool-row.active {
+  background: var(--blue-soft);
+}
+.tool-row.active:hover {
+  background: var(--blue-soft);
+}
+.tool-name {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--label);
+  letter-spacing: -0.15px;
+}
+.tool-row.occupied .tool-name {
+  color: var(--label-secondary);
+}
+.tool-row.active .tool-name {
+  color: var(--blue);
+  font-weight: 650;
+}
+.tool-check {
   font-size: 10px;
-  font-weight: 600;
-  color: #333;
+  font-weight: 650;
+  color: var(--green);
+  background: var(--green-soft);
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
 }
 
 .toolbox-footer {
   margin-top: auto;
-  padding: 8px;
-  background: #f8f8fa;
-  border-radius: 6px;
+  padding: 10px;
+  background: var(--fill-grouped);
+  border-radius: var(--radius);
 }
-
 .toolbox-footer .hint {
-  font-size: 10px;
-  color: #86868b;
-  line-height: 1.3;
+  font-size: 11px;
+  color: var(--label-tertiary);
+  line-height: 1.45;
 }
 
-/* 中间画布视口 */
 .canvas-viewport-area {
   flex: 1;
   overflow: auto;
   position: relative;
-  background: #eef0f3;
-  padding: 30px;
+  padding: 36px;
   display: flex;
   align-items: flex-start;
   justify-content: center;
+  background:
+    radial-gradient(1000px 480px at 50% -10%, rgba(255, 255, 255, 0.72), transparent 60%),
+    linear-gradient(180deg, #ececef 0%, #e3e3e8 100%);
 }
 
 .ruler-container-wrap {
   position: relative;
+  animation: apple-rise 520ms var(--ease-out) both;
 }
 
 .paper-sheet {
   position: relative;
-  background: #ffffff;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.06);
-  border-radius: 2px;
+  background: #fff;
+  box-shadow: var(--shadow-paper);
+  border-radius: 3px;
   overflow: hidden;
-  cursor: crosshair;
+  cursor: default;
 }
 
 .paper-grid-overlay {
@@ -1383,35 +1656,37 @@ function handlePrintPdf() {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: #0071e3;
-  opacity: 0.6;
-  border-left: 1px dashed #0071e3;
+  background: var(--blue);
+  opacity: 0.55;
+  border-left: 1px dashed var(--blue);
   pointer-events: none;
   z-index: 100;
 }
 
 .guide-tag {
   position: absolute;
-  top: 4px;
-  left: 4px;
-  background: rgba(0, 113, 227, 0.85);
-  color: #ffffff;
+  top: 6px;
+  left: 6px;
+  background: rgba(0, 113, 227, 0.9);
+  color: #fff;
   font-size: 9px;
-  padding: 1px 4px;
-  border-radius: 3px;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
 }
 
-/* 画布元素与选中手柄 */
 .canvas-element {
   position: absolute;
-  cursor: move;
+  cursor: pointer;
   border: 1px solid transparent;
-  transition: box-shadow 0.1s ease;
+  border-radius: 2px;
+  transition: box-shadow var(--duration) var(--spring), border-color var(--duration-fast) var(--ease-out);
 }
-
+.canvas-element:hover {
+  border-color: rgba(0, 113, 227, 0.28);
+}
 .canvas-element.selected {
-  border: 1px solid #0071e3;
-  box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.25);
+  border: 1px solid var(--blue);
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
 }
 
 .element-content {
@@ -1440,10 +1715,129 @@ function handlePrintPdf() {
 .handle.sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
 .handle.w { top: calc(50% - 3.5px); left: -4px; cursor: ew-resize; }
 
+.slot-chip {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  z-index: 6;
+  font-size: 9px;
+  font-weight: 650;
+  color: var(--blue);
+  background: rgba(232, 242, 255, 0.94);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+
+.split-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  margin-left: -6px;
+  z-index: 120;
+  pointer-events: auto;
+  cursor: col-resize;
+  background: transparent;
+}
+.split-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--blue);
+  opacity: 0.88;
+}
+.split-handle:hover::before,
+.split-handle.dragging::before {
+  width: 3px;
+  opacity: 1;
+}
+.split-label {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--blue);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* 元素样式渲染 */
 .el-header {
-  text-align: center;
   padding-top: 2px;
+}
+.header-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+.el-header.align-left { text-align: left; }
+.el-header.align-center { text-align: center; }
+.el-header.align-right { text-align: right; }
+.el-header.align-left .header-main { justify-content: flex-start; }
+.el-header.align-center .header-main { justify-content: center; }
+.el-header.align-right .header-main { justify-content: flex-end; }
+.el-header.align-right .report-no { margin-left: 8px; }
+.hospital-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.header-copy {
+  min-width: 0;
+}
+.report-sub {
+  font-size: 8px;
+  color: #666;
+  margin-top: 1px;
+}
+.report-no {
+  margin-left: auto;
+  font-size: 8px;
+  color: #333;
+  text-align: right;
+  flex-shrink: 0;
+}
+.report-no span {
+  display: block;
+  color: #888;
+}
+.align-pills {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.field-add {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.field-add .apple-select-sm {
+  flex: 1;
+}
+.field-edit {
+  align-items: center;
+}
+.slot-order {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.canvas-element.reordering {
+  opacity: 0.88;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
 }
 
 .hospital-title {
@@ -1463,10 +1857,12 @@ function handlePrintPdf() {
 
 .el-demographics {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 6px 10px;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
-  padding: 2px 8px;
+  padding: 3px 8px;
   font-size: 10px;
   border-radius: 3px;
 }
@@ -1602,7 +1998,7 @@ function handlePrintPdf() {
 }
 
 .el-pacs-grid {
-  display: flex;
+  display: grid;
   gap: 4px;
   width: 100%;
   height: 100%;
@@ -1642,53 +2038,59 @@ function handlePrintPdf() {
   height: 100%;
 }
 
-/* 右侧属性检查器面板 */
 .inspector-panel {
-  width: 250px;
-  background: #ffffff;
-  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  width: 292px;
+  flex-shrink: 0;
+  background: var(--glass-heavy);
+  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  border-left: 1px solid var(--separator);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  user-select: text;
+  animation: apple-rise var(--duration-slow) var(--ease-out) 80ms both;
 }
 
 .inspector-header {
-  padding: 12px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #1d1d1f;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 14px 16px 10px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--label);
+  letter-spacing: -0.2px;
 }
 
 .inspector-tabs {
   display: flex;
-  background: #f5f5f7;
+  background: var(--fill-grouped);
   padding: 3px;
-  margin: 10px 12px 4px;
-  border-radius: 7px;
+  margin: 0 12px 4px;
+  border-radius: var(--radius-sm);
 }
 
 .tab-btn {
   flex: 1;
-  padding: 5px 0;
-  font-size: 10px;
-  font-weight: 600;
+  padding: 6px 0;
+  font-size: 11px;
+  font-weight: 550;
   border: none;
   background: transparent;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
-  color: #666;
+  color: var(--label-secondary);
   text-align: center;
+  transition: background var(--duration) var(--spring), color var(--duration-fast) var(--ease-out), box-shadow var(--duration) var(--ease-out);
 }
 
 .tab-btn.active {
-  background: #ffffff;
-  color: #0071e3;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #fff;
+  color: var(--label);
+  font-weight: 650;
+  box-shadow: var(--shadow-thumb);
 }
 
 .inspector-body {
-  padding: 12px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1696,9 +2098,9 @@ function handlePrintPdf() {
 
 .prop-title {
   font-size: 11px;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 4px;
+  font-weight: 650;
+  color: var(--label-tertiary);
+  margin-bottom: 6px;
 }
 
 .prop-row-2 {
@@ -1710,28 +2112,35 @@ function handlePrintPdf() {
 .prop-field {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin-bottom: 6px;
+  gap: 4px;
+  margin-bottom: 8px;
 }
 
 .prop-field label {
-  font-size: 10px;
-  color: #6e6e73;
+  font-size: 11px;
+  color: var(--label-tertiary);
 }
 
 .apple-input-sm,
 .apple-textarea {
-  padding: 4px 6px;
-  border-radius: 5px;
-  border: 1px solid #d2d2d7;
-  font-size: 11px;
-  background: #ffffff;
+  padding: 6px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--separator-opaque);
+  font-size: 12px;
+  background: var(--fill-grouped);
   outline: none;
+  transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
 }
 
 .apple-input-sm:focus,
 .apple-textarea:focus {
-  border-color: #0071e3;
+  border-color: var(--blue);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.16);
+}
+
+.apple-input-sm[readonly] {
+  color: var(--label-tertiary);
 }
 
 .align-btn-grid {
@@ -1742,61 +2151,129 @@ function handlePrintPdf() {
 }
 
 .action-btn {
-  padding: 5px;
-  border-radius: 6px;
-  border: 1px solid #d2d2d7;
-  background: #ffffff;
-  font-size: 10px;
+  padding: 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--separator-opaque);
+  background: #fff;
+  font-size: 11px;
   font-weight: 600;
-  color: #333;
+  color: var(--label);
   cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--spring);
 }
 
-.action-btn:hover {
-  background: #f5f5f7;
-}
+.action-btn:hover { background: var(--fill-grouped); }
+.action-btn:active { transform: scale(0.98); }
 
 .action-btn.primary {
-  background: #0071e3;
+  background: var(--blue);
   color: #fff;
   border: none;
 }
 
 .action-btn.danger {
-  color: #ff3b30;
-  border-color: #ffcdd2;
+  color: var(--red);
+  border-color: rgba(255, 59, 48, 0.22);
 }
 
 .checkbox-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #333;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--label);
   margin: 4px 0;
   cursor: pointer;
 }
 
 .prop-hint {
-  font-size: 10px;
-  color: #888;
+  font-size: 11px;
+  color: var(--label-tertiary);
   margin: 4px 0 8px;
+  line-height: 1.45;
 }
 
 .inspector-empty {
-  padding: 30px 16px;
-  text-align: center;
-  color: #86868b;
-}
-
-.inspector-empty .icon {
-  font-size: 32px;
-  margin-bottom: 8px;
+  padding: 12px 14px 20px;
+  text-align: left;
+  color: var(--label-tertiary);
 }
 
 .inspector-empty p {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+
+.ratio-slider {
+  width: 100%;
+  accent-color: var(--blue);
+}
+
+.item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.item-row {
+  display: grid;
+  grid-template-columns: 1fr 52px 48px 28px;
+  gap: 4px;
+  align-items: center;
+}
+
+.item-row .item-abbr,
+.item-row .item-result {
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.item-del {
+  height: 28px;
+  border: 1px solid rgba(255, 59, 48, 0.22);
+  border-radius: var(--radius-xs);
+  background: #fff;
+  color: var(--red);
   font-size: 11px;
-  line-height: 1.4;
-  margin: 0;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.item-del:hover {
+  background: rgba(255, 59, 48, 0.06);
+}
+
+.pacs-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.preset-btn {
+  padding: 7px 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--separator-opaque);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--label);
+  cursor: pointer;
+}
+
+.preset-btn.active {
+  background: var(--blue-soft);
+  border-color: rgba(0, 113, 227, 0.28);
+  color: var(--blue);
+}
+
+.engine-box {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--separator);
 }
 </style>

@@ -43,9 +43,11 @@ When editing or extending code in this repository, all AI agents **MUST** strict
 - The print agent must hook into the OS Print Spooler (Windows `FindNextPrinterChangeNotification` / Winspool API and Linux CUPS / IPP).
 - Accurately report: `QUEUED`, `PRINTING`, `PAPER_OUT` (physical out of paper), `PAPER_JAM` (mechanical jam), and `JOB_COMPLETED` (physical sheet fully ejected).
 
-### 5. Dual-Mode UX: Doctor Wizard vs Pro Canvas
-- **Doctor Wizard Mode (`DoctorWizard.vue`)**: Zero drag-and-drop. Clinicians select presets (A5 Lab, PACS multi-frame, Prescription), toggle fields, set abnormal thresholds, and generate compliant templates in 10 seconds.
-- **Pro Canvas Mode (`ProCanvas`)**: Full millimeter canvas for hospital IT engineers to do fine-grained adjustments, dynamic formulas, and driver scripts.
+### 5. Dual-Mode UX: Intent Wizard vs AST Review（禁止传统低代码）
+- **Doctor Wizard (`DoctorWizard.vue`)**：临床意图表面。选预设、开关模块、对 AI 说自然语言。零拖拽。AI 只能产出封闭 `ReportTemplate` AST。
+- **Pro Canvas (`ProCanvas`)**：信息科审查引擎投影框，覆写已有槽位参数（页边距、行高、模块开关）。**不是**开放物料画布，**不是**以自由 `x/y` 为打印源真相。
+- 合法链路：临床意图 → AI 工具 → `ReportElement` 有限枚举 → `medprint-core` 物理毫米排版 → Vue 只投影。
+- 新增视觉类型必须先改 `crates/medprint-core/src/schema/mod.rs`，禁止只在 Vue 工具箱加按钮。
 
 ### 6. High-Fidelity Medical Charts & PACS Imaging
 - Native vector calculation for **Thromboelastogram (TEG)** reaction curves ($R, K, \alpha, MA, LY30$).

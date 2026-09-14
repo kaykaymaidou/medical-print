@@ -7,6 +7,7 @@
     "dev:designer": "pnpm --filter @medprint/designer dev",
     "build:designer": "pnpm --filter @medprint/designer build",
     "build:extension": "pnpm --filter @medprint/extension build",
+    "build:ai-agent": "pnpm --filter @medprint/ai-agent build",
     "build:wasm": "wasm-pack build crates/medprint-wasm --target web --out-dir ../../packages/designer/src/wasm"
   },
   "devDependencies": {

@@ -8,9 +8,7 @@
   "scripts": {
     "build": "tsc"
   },
-  "dependencies": {
-    "@medprint/designer": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "typescript": "^5.4.5"
   }

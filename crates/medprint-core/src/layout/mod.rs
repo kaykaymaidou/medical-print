@@ -1,7 +1,11 @@
 //! 布局排版与分页计算核心
 
+pub mod obstacle_solver;
+pub mod slot_frames;
 pub mod snaking_table;
 
+pub use obstacle_solver::{ObstacleBox, ObstacleLayoutSolver, PhysicalRect, SolvedCellPlacement, SolvedObstaclePage};
+pub use slot_frames::{specs_from_designer_json, SlotFrame, SlotKind, SlotLayoutEngine, SlotLayoutResult, SlotLayoutSpec};
 pub use snaking_table::{SnakingPageColumn, SnakingPageLayout, SnakingTableEngine};
 
 /// 语义化防孤立与分页控制
