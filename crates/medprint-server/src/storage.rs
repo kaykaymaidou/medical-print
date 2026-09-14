@@ -62,6 +62,20 @@ impl LocalArchiveStore {
         list
     }
 
+    /// 获取单个模板详情
+    pub fn get_template(&self, id: &str) -> Option<serde_json::Value> {
+        let file_path = self.templates_dir().join(format!("{}.medprint.json", id));
+        if file_path.exists() {
+            if let Ok(mut file) = File::open(&file_path) {
+                let mut content = String::new();
+                if file.read_to_string(&mut content).is_ok() {
+                    return serde_json::from_str::<serde_json::Value>(&content).ok();
+                }
+            }
+        }
+        None
+    }
+
     /// 导出本地模板全量备份包 (离线迁移/U盘备份)
     pub fn export_bundle(&self) -> String {
         let templates = self.list_templates();
@@ -71,5 +85,33 @@ impl LocalArchiveStore {
             "count": templates.len(),
             "templates": templates
         }).to_string()
+    }
+
+    /// 删除指定 ID 的本地模板
+    pub fn delete_template(&self, id: &str) -> io::Result<bool> {
+        let file_path = self.templates_dir().join(format!("{}.medprint.json", id));
+        if file_path.exists() {
+            fs::remove_file(file_path)?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// 导入全量离线归档备份包或单个模板
+    pub fn import_bundle(&self, bundle_json: &serde_json::Value) -> io::Result<usize> {
+        let mut count = 0;
+        if let Some(templates) = bundle_json.get("templates").and_then(|v| v.as_array()) {
+            for tpl in templates {
+                if let Some(id) = tpl.get("id").and_then(|v| v.as_str()) {
+                    let _ = self.save_template(id, tpl);
+                    count += 1;
+                }
+            }
+        } else if let Some(id) = bundle_json.get("id").and_then(|v| v.as_str()) {
+            let _ = self.save_template(id, bundle_json);
+            count += 1;
+        }
+        Ok(count)
     }
 }

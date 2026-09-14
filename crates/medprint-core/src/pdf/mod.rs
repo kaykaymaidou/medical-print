@@ -5,8 +5,8 @@
 
 use crate::barcode::Code128Encoder;
 use crate::layout::SnakingTableEngine;
-use crate::schema::{PatientInfo, ReportElement, ReportTemplate};
-use crate::units::{PhysicalLength, PhysicalSize};
+use crate::schema::{AlertFlag, LabItemRow, PatientInfo, ReportElement, ReportTemplate};
+use crate::units::{Margins, PhysicalLength, PhysicalSize};
 
 pub struct VectorPdfDoc {
     page_size: PhysicalSize,
@@ -143,6 +143,141 @@ impl VectorPdfDoc {
 pub struct MedicalReportCompiler;
 
 impl MedicalReportCompiler {
+    pub fn compile(template: &ReportTemplate) -> VectorPdfDoc {
+        Self::compile_report(template, &PatientInfo::default())
+    }
+
+    /// 从任意前端或 API 提交的 JSON 结构编译纯矢量 PDF
+    pub fn compile_from_json(value: &serde_json::Value) -> Result<VectorPdfDoc, String> {
+        // 智能兼容多种 paper_size 格式 (对象、字符串、或嵌套在 page 下)
+        let paper_size = if let Some(paper) = value.get("paper_size").or_else(|| value.get("page").and_then(|p| p.get("paper_size"))) {
+            if let Some(s) = paper.as_str() {
+                match s.to_lowercase().as_str() {
+                    "a4" | "a4_portrait" => PhysicalSize::a4_portrait(),
+                    "a4_landscape" => PhysicalSize::from_mm(297.0, 210.0),
+                    _ => PhysicalSize::a5_landscape(),
+                }
+            } else {
+                let paper_w = paper.get("width_mm").or_else(|| paper.get("width")).and_then(|v| v.as_f64()).unwrap_or(210.0) as f32;
+                let paper_h = paper.get("height_mm").or_else(|| paper.get("height")).and_then(|v| v.as_f64()).unwrap_or(148.0) as f32;
+                PhysicalSize::from_mm(paper_w, paper_h)
+            }
+        } else {
+            PhysicalSize::a5_landscape()
+        };
+
+        let margins_val = value.get("margins").or_else(|| value.get("page").and_then(|p| p.get("margins")));
+        let m_top = margins_val.and_then(|m| m.get("top_mm").or_else(|| m.get("top"))).and_then(|v| v.as_f64()).unwrap_or(8.0) as f32;
+        let m_right = margins_val.and_then(|m| m.get("right_mm").or_else(|| m.get("right"))).and_then(|v| v.as_f64()).unwrap_or(10.0) as f32;
+        let m_bottom = margins_val.and_then(|m| m.get("bottom_mm").or_else(|| m.get("bottom"))).and_then(|v| v.as_f64()).unwrap_or(8.0) as f32;
+        let m_left = margins_val.and_then(|m| m.get("left_mm").or_else(|| m.get("left"))).and_then(|v| v.as_f64()).unwrap_or(10.0) as f32;
+
+        let margins = Margins {
+            top: PhysicalLength::from_mm(m_top),
+            right: PhysicalLength::from_mm(m_right),
+            bottom: PhysicalLength::from_mm(m_bottom),
+            left: PhysicalLength::from_mm(m_left),
+        };
+
+        let mut elements = Vec::new();
+        if let Some(arr) = value.get("elements").and_then(|v| v.as_array()) {
+            for el in arr {
+                let kind = el.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+                match kind {
+                    "HospitalHeader" => {
+                        elements.push(ReportElement::HospitalHeader {
+                            hospital_name: el.get("hospital_name").and_then(|v| v.as_str()).unwrap_or("XX市人民医院").to_string(),
+                            sub_title: el.get("sub_title").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                            report_title: el.get("report_title").and_then(|v| v.as_str()).unwrap_or("临床检验报告单").to_string(),
+                            align: match el.get("align").and_then(|v| v.as_str()).unwrap_or("center") {
+                                "left" => crate::schema::HeaderAlign::Left,
+                                "right" => crate::schema::HeaderAlign::Right,
+                                _ => crate::schema::HeaderAlign::Center,
+                            },
+                            logo_data_url: el.get("logo_data_url").and_then(|v| v.as_str()).map(String::from),
+                            show_report_no: el.get("show_report_no").and_then(|v| v.as_bool()).unwrap_or(false),
+                            report_no_label: el.get("report_no_label").and_then(|v| v.as_str()).unwrap_or("报告单号").to_string(),
+                            report_no_preview: el.get("report_no_preview").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        });
+                    }
+                    "PatientBanner" => {
+                        let include_barcode = el.get("include_barcode").and_then(|v| v.as_bool()).unwrap_or(true);
+                        let mut fields = Vec::new();
+                        if let Some(field_arr) = el.get("fields").and_then(|v| v.as_array()) {
+                            for f in field_arr {
+                                fields.push(crate::schema::PatientField {
+                                    key: f.get("key").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                    label: f.get("label").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                    preview_value: f.get("preview_value").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                });
+                            }
+                        }
+                        elements.push(ReportElement::PatientBanner {
+                            include_barcode,
+                            fields,
+                        });
+                    }
+                    "SnakingTable" => {
+                        let mut items = Vec::new();
+                        if let Some(items_arr) = el.get("items").and_then(|v| v.as_array()) {
+                            for (i, it) in items_arr.iter().enumerate() {
+                                items.push(LabItemRow {
+                                    index: (i + 1) as u32,
+                                    item_name: it.get("item_name").or_else(|| it.get("name")).and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                    item_abbr: it.get("item_abbr").or_else(|| it.get("abbr")).and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                    result_value: it.get("result_value").or_else(|| it.get("value")).and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                    unit: it.get("unit").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                    ref_range_display: it.get("ref_range_display").or_else(|| it.get("ref_range")).and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                    alert_flag: AlertFlag::Normal,
+                                    is_critical: it.get("is_critical").and_then(|v| v.as_bool()).unwrap_or(false),
+                                });
+                            }
+                        }
+                        elements.push(ReportElement::SnakingTable {
+                            columns_count: 2,
+                            column_gap: PhysicalLength::from_mm(6.0),
+                            left_ratio: 0.5,
+                            items,
+                        });
+                    }
+                    "Signatures" => {
+                        elements.push(ReportElement::Signatures(crate::schema::SignatureChain {
+                            requesting_physician: el.get("requesting_physician").and_then(|v| v.as_str()).unwrap_or("李主任").to_string(),
+                            sampling_person: el.get("sampling_person").and_then(|v| v.as_str()).map(String::from),
+                            operator: el.get("operator").and_then(|v| v.as_str()).unwrap_or("王技师").to_string(),
+                            reviewer: el.get("reviewer").and_then(|v| v.as_str()).unwrap_or("陈主管").to_string(),
+                            report_date: el.get("report_date").and_then(|v| v.as_str()).unwrap_or("2026-09-15").to_string(),
+                            doctor_signature_images: Vec::new(),
+                        }));
+                    }
+                    "Seal" => {
+                        elements.push(ReportElement::Seal(crate::schema::HospitalSeal {
+                            hospital_name: el.get("hospital_name").and_then(|v| v.as_str()).unwrap_or("医院检验科").to_string(),
+                            seal_title: el.get("seal_title").and_then(|v| v.as_str()).unwrap_or("检验专用章").to_string(),
+                            seal_code: el.get("seal_code").and_then(|v| v.as_str()).unwrap_or("SEAL-01").to_string(),
+                            diameter_mm: el.get("diameter_mm").and_then(|v| v.as_f64()).unwrap_or(32.0) as f32,
+                            angle_jitter_deg: 1.5,
+                            opacity: 0.85,
+                        }));
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        let template = ReportTemplate {
+            id: value.get("id").and_then(|v| v.as_str()).unwrap_or("tpl_dynamic").to_string(),
+            name: value.get("name").and_then(|v| v.as_str()).unwrap_or("Dynamic Report").to_string(),
+            version: "1.0".to_string(),
+            paper_size,
+            margins,
+            report_type: crate::schema::MedicalReportType::LisBloodRoutine,
+            elements,
+        };
+
+        Ok(Self::compile(&template))
+    }
+
     pub fn compile_report(template: &ReportTemplate, patient: &PatientInfo) -> VectorPdfDoc {
         let mut pdf = VectorPdfDoc::new(template.paper_size);
 

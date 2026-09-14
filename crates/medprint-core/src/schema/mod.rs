@@ -23,6 +23,27 @@ pub struct PatientInfo {
     pub receiving_time: Option<String>, // 接收时间
 }
 
+impl Default for PatientInfo {
+    fn default() -> Self {
+        Self {
+            name: "张伟".to_string(),
+            gender: Gender::Male,
+            age: 45,
+            age_unit: AgeUnit::Year,
+            is_pregnant: false,
+            gestational_weeks: None,
+            medical_record_no: "MR-809214".to_string(),
+            inpatient_no: Some("ZY20260908".to_string()),
+            bed_no: Some("12床".to_string()),
+            department: "医学检验科".to_string(),
+            barcode: "0192830029".to_string(),
+            sample_type: "静脉全血".to_string(),
+            sampling_time: Some("2026-09-08 07:45".to_string()),
+            receiving_time: Some("2026-09-08 08:15".to_string()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Gender {
     Male,
