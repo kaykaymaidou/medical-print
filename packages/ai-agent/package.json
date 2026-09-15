@@ -6,11 +6,17 @@
   "description": "DeepSeek Harness Plugin & Autonomous AI Agent for MedPrint Medical Report Generation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc"
+  "bin": {
+    "medprint-cli": "./dist/cli.js",
+    "medprint-mcp": "./dist/mcp.js"
   },
-  "dependencies": {},
+  "scripts": {
+    "build": "tsc",
+    "cli": "node dist/cli.js",
+    "mcp": "node dist/mcp.js"
+  },
   "devDependencies": {
+    "@types/node": "^26.5.1",
     "typescript": "^5.4.5"
   }
 }

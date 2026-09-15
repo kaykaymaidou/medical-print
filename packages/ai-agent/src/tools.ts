@@ -1,5 +1,8 @@
 //! MedPrint AI Agent Tools Definition
-//! Compatible with DeepSeek Harness (dsh) & OpenAI Tool Calling
+//! Compatible with DeepSeek Harness (dsh) & OpenAI Tool Calling & MCP
+
+import { parseRdlxXml, rdlxToFingerprint } from './rag/rdlxParser.js'
+import { reverseGenerateTemplate } from './rag/index.js'
 
 export interface ToolDefinition {
   name: string
@@ -170,6 +173,28 @@ export const MEDPRINT_TOOLS: ToolDefinition[] = [
         },
       },
       required: ['target_element'],
+    },
+  },
+  {
+    name: 'medprint_parse_rdlx',
+    description: '解析葡萄城 ActiveReports XML 报表模板 (.rdlx)，解构 dataset1/dataset2 并将其无损转换为 MedPrint 声明式物理 AST。',
+    parameters: {
+      type: 'object',
+      properties: {
+        rdlx_xml: { type: 'string', description: '葡萄城 RDLX XML 文本内容' },
+      },
+      required: ['rdlx_xml'],
+    },
+  },
+  {
+    name: 'medprint_reverse_rag',
+    description: '将非结构化或半结构化医疗文档（Word表格、PDF文本、医生口述等）通过 RAG 骨架召回与 Pi Agent 最小化槽位填充逆向反推为 MedPrint 闭环 AST。',
+    parameters: {
+      type: 'object',
+      properties: {
+        raw_content: { type: 'string', description: '原始医疗文档文本或表格内容' },
+      },
+      required: ['raw_content'],
     },
   },
 ]
@@ -426,6 +451,41 @@ export class MedPrintToolExecutor {
             page_budget: page_budget || null,
           },
           message: `✅ 已成功为元素 [${target_element}] 应用空间几何约束：${summaryParts.join('；')}。底层求解器将自动计算零碰撞绝对坐标。`,
+        }
+      }
+
+      case 'medprint_parse_rdlx': {
+        const { rdlx_xml } = args
+        const rdlx = parseRdlxXml(rdlx_xml)
+        const fp = rdlxToFingerprint(rdlx)
+        const res = await reverseGenerateTemplate(rdlx_xml)
+        return {
+          status: 'success',
+          rdlx_meta: {
+            title: rdlx.reportTitle,
+            page: { width_mm: rdlx.paper.width_mm, height_mm: rdlx.paper.height_mm, orientation: rdlx.paper.orientation },
+            items_count: rdlx.dataset1Fields.length,
+            patient_fields: rdlx.patientFields.map((f) => f.label),
+          },
+          fingerprint: fp,
+          template: res.template,
+          elapsed_ms: res.elapsedMs,
+          message: `✅ 葡萄城 RDLX 模板解析成功！提取到 ${rdlx.dataset1Fields.length} 个检验明细字段与 ${rdlx.patientFields.length} 个患者字段，已转换为 MedPrint 声明式物理 AST。`,
+        }
+      }
+
+      case 'medprint_reverse_rag': {
+        const { raw_content } = args
+        const res = await reverseGenerateTemplate(raw_content)
+        return {
+          status: 'success',
+          matched_archetype: res.retrieval.matchedArchetype.name,
+          confidence: res.retrieval.confidence,
+          fingerprint: res.fingerprint,
+          template: res.template,
+          pipeline_steps: res.pipelineSteps,
+          elapsed_ms: res.elapsedMs,
+          message: `✅ 逆向生成成功！命中骨架【${res.retrieval.matchedArchetype.name}】(${(res.retrieval.confidence * 100).toFixed(1)}%)，耗时 ${res.elapsedMs}ms。`,
         }
       }
 
