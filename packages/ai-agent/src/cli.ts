@@ -8,6 +8,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { parseRdlxXml, rdlxToFingerprint } from './rag/rdlxParser.js'
 import { reverseGenerateTemplate } from './rag/index.js'
+import { bindRuntimeDataToAst } from './binding/dataBinder.js'
 import { startMcpServer } from './mcp.js'
 
 function printHelp(): void {
@@ -20,6 +21,8 @@ Usage:
 Commands:
   rdlx-parse <file.rdlx>        Parse GrapeCity ActiveReports RDLX XML and output MedPrint AST
   reverse <text-or-file>        Reverse-engineer Word/PDF/text report into MedPrint AST via RAG
+  bind <tpl.json> <data.json>   Bind runtime patient & lab data into template AST JSON
+  render <tpl.json> <data.json> Bind real patient data and compile into 300 DPI vector PDF
   compile <ast.json>            Compile MedPrint AST JSON into pure vector PDF via medprint-server
   mcp                           Start Model Context Protocol (MCP) stdio server
   help                          Display this help message
@@ -31,6 +34,7 @@ Options:
 Examples:
   medprint-cli rdlx-parse ./template.rdlx -o ./template.ast.json
   medprint-cli reverse ./report_ocr.txt -o ./output.json
+  medprint-cli render ./template.ast.json ./patient_data.json -o ./report.pdf
   medprint-cli compile ./template.ast.json -o ./report.pdf
   medprint-cli mcp
 `)
@@ -103,6 +107,92 @@ async function main(): Promise<void> {
         console.log(`   Matched archetype: ${res.retrieval.matchedArchetype.name} (${(res.retrieval.confidence * 100).toFixed(1)}%)`)
       } else {
         console.log(JSON.stringify(res.template, null, 2))
+      }
+      break
+    }
+
+    case 'bind': {
+      const tplPath = args[1]
+      const dataPath = args[2]
+      if (!tplPath || !dataPath) {
+        console.error('❌ Error: Usage: medprint-cli bind <template.ast.json> <data.json> [-o <out.ast.json>]')
+        process.exit(1)
+      }
+      const fullTpl = path.resolve(process.cwd(), tplPath)
+      const fullData = path.resolve(process.cwd(), dataPath)
+      if (!fs.existsSync(fullTpl)) {
+        console.error(`❌ Template file not found: ${fullTpl}`)
+        process.exit(1)
+      }
+      if (!fs.existsSync(fullData)) {
+        console.error(`❌ Data file not found: ${fullData}`)
+        process.exit(1)
+      }
+      const tplAst = JSON.parse(fs.readFileSync(fullTpl, 'utf-8'))
+      const runtimeData = JSON.parse(fs.readFileSync(fullData, 'utf-8'))
+      const { boundAst, stats } = bindRuntimeDataToAst(tplAst, runtimeData)
+
+      const outIndex = args.findIndex((a) => a === '-o' || a === '--out')
+      const outPath = outIndex !== -1 && args[outIndex + 1] ? path.resolve(process.cwd(), args[outIndex + 1]) : null
+
+      if (outPath) {
+        fs.writeFileSync(outPath, JSON.stringify(boundAst, null, 2), 'utf-8')
+        console.log(`✅ Data bound to AST successfully -> [${outPath}]`)
+        console.log(`   Items: ${stats.itemsCount}, High: ${stats.highCount}, Low: ${stats.lowCount}, Critical: ${stats.criticalCount}`)
+      } else {
+        console.log(JSON.stringify(boundAst, null, 2))
+      }
+      break
+    }
+
+    case 'render': {
+      const tplPath = args[1]
+      const dataPath = args[2]
+      if (!tplPath || !dataPath) {
+        console.error('❌ Error: Usage: medprint-cli render <template.ast.json> <data.json> [-o <out.pdf>] [-s <serverUrl>]')
+        process.exit(1)
+      }
+      const fullTpl = path.resolve(process.cwd(), tplPath)
+      const fullData = path.resolve(process.cwd(), dataPath)
+      if (!fs.existsSync(fullTpl)) {
+        console.error(`❌ Template file not found: ${fullTpl}`)
+        process.exit(1)
+      }
+      if (!fs.existsSync(fullData)) {
+        console.error(`❌ Data file not found: ${fullData}`)
+        process.exit(1)
+      }
+      const tplAst = JSON.parse(fs.readFileSync(fullTpl, 'utf-8'))
+      const runtimeData = JSON.parse(fs.readFileSync(fullData, 'utf-8'))
+      const { boundAst, stats } = bindRuntimeDataToAst(tplAst, runtimeData)
+
+      const serverIndex = args.findIndex((a) => a === '-s' || a === '--server')
+      const serverUrl = serverIndex !== -1 && args[serverIndex + 1] ? args[serverIndex + 1] : 'http://127.0.0.1:19800'
+
+      const outIndex = args.findIndex((a) => a === '-o' || a === '--out')
+      const outPath = outIndex !== -1 && args[outIndex + 1]
+        ? path.resolve(process.cwd(), args[outIndex + 1])
+        : fullTpl.replace(/\.json$/i, '') + '_rendered.pdf'
+
+      console.log(`📡 Injected ${stats.itemsCount} real lab items (Critical: ${stats.criticalCount}, High: ${stats.highCount}, Low: ${stats.lowCount})...`)
+      console.log(`📡 Sending to compiler server: ${serverUrl}/api/v1/render/compile_pdf ...`)
+
+      try {
+        const resp = await fetch(`${serverUrl}/api/v1/render/compile_pdf`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(boundAst),
+        })
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}: ${await resp.text()}`)
+        }
+        const pdfBuf = await resp.arrayBuffer()
+        fs.writeFileSync(outPath, Buffer.from(pdfBuf))
+        console.log(`✅ Pure Vector PDF compiled with real patient data (${pdfBuf.byteLength} bytes) -> [${outPath}]`)
+      } catch (err: any) {
+        console.error(`❌ Render failed: ${err.message}`)
+        console.error('   Hint: Make sure medprint-server is running (`cargo run -p medprint-server`).')
+        process.exit(1)
       }
       break
     }

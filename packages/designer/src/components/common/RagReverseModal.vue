@@ -132,6 +132,32 @@
               </div>
             </div>
 
+            <!-- 真实业务数据灌入出单演练 -->
+            <div class="runtime-data-section">
+              <div class="runtime-data-header">
+                <span class="runtime-data-title">🧪 3. 真实患者数据灌入出单演练 (Runtime Data Binding)</span>
+              </div>
+              <div class="runtime-scenarios-row">
+                <button
+                  v-for="scenario in REAL_CLINICAL_SCENARIOS"
+                  :key="scenario.id"
+                  class="scenario-btn"
+                  :class="{ active: selectedScenarioId === scenario.id }"
+                  @click="applyScenarioData(scenario)"
+                >
+                  {{ scenario.name }}
+                </button>
+              </div>
+              <div v-if="bindingStats" class="binding-feedback">
+                <span class="binding-tag">✓ 注入 {{ bindingStats.itemsCount }} 项真实化验</span>
+                <span v-if="bindingStats.criticalCount > 0" class="binding-tag critical">🚨 {{ bindingStats.criticalCount }} 项危急值</span>
+                <span v-if="bindingStats.highCount > 0" class="binding-tag high">↑ {{ bindingStats.highCount }} 项偏高</span>
+                <span v-if="bindingStats.lowCount > 0" class="binding-tag low">↓ {{ bindingStats.lowCount }} 项偏低</span>
+                <span v-if="bindingStats.formulasComputed.length > 0" class="binding-tag formula">🧮 {{ bindingStats.formulasComputed.join(', ') }}</span>
+                <span class="binding-tag budget">📐 行高 {{ bindingStats.appliedRowHeightMm }}mm (100% Fit in A5)</span>
+              </div>
+            </div>
+
             <!-- 操作按钮组 -->
             <div class="action-footer">
               <button class="apple-btn-secondary" @click="handleCompilePdf">
@@ -157,9 +183,12 @@ import { ref } from 'vue'
 import {
   executeRagReverse,
   RAG_PRESET_SAMPLES,
+  REAL_CLINICAL_SCENARIOS,
+  bindRuntimeDataToAst,
   type PresetSample,
   type ReverseGenerationResult,
   type PipelineStepLog,
+  type BindingResult,
 } from '../../domain/ragReverse'
 import type { ReportTemplate } from '../../domain/reportAst'
 import { compileVectorPdfRemote } from '../../domain/engineBridge'
@@ -174,6 +203,8 @@ const emit = defineEmits<{
 }>()
 
 const selectedSampleId = ref<string>('')
+const selectedScenarioId = ref<string>('')
+const bindingStats = ref<BindingResult['stats'] | null>(null)
 const inputText = ref<string>('')
 const isRunning = ref(false)
 const result = ref<ReverseGenerationResult | null>(null)
@@ -188,6 +219,14 @@ const pipelineSteps = ref<PipelineStepLog[]>([
 function loadSample(sample: PresetSample) {
   selectedSampleId.value = sample.id
   inputText.value = sample.content.trim()
+}
+
+function applyScenarioData(scenario: typeof REAL_CLINICAL_SCENARIOS[number]) {
+  if (!result.value) return
+  selectedScenarioId.value = scenario.id
+  const { boundAst, stats } = bindRuntimeDataToAst(result.value.template, scenario.data)
+  result.value.template = boundAst
+  bindingStats.value = stats
 }
 
 function handleFileUpload(e: Event) {
@@ -709,5 +748,94 @@ function statusLabel(status: PipelineStepLog['status']): string {
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.98); }
   to { opacity: 1; transform: scale(1); }
+}
+
+.runtime-data-section {
+  background: #f5f9ff;
+  border: 1px solid rgba(0, 113, 227, 0.15);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-top: 12px;
+}
+
+.runtime-data-header {
+  margin-bottom: 8px;
+}
+
+.runtime-data-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0071e3;
+}
+
+.runtime-scenarios-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.scenario-btn {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #1d1d1f;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.scenario-btn:hover {
+  border-color: #0071e3;
+  background: #f0f7ff;
+}
+
+.scenario-btn.active {
+  background: #0071e3;
+  color: white;
+  border-color: #0071e3;
+}
+
+.binding-feedback {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.binding-tag {
+  font-size: 10px;
+  background: rgba(0, 113, 227, 0.08);
+  color: #0071e3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.binding-tag.critical {
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
+  font-weight: 600;
+}
+
+.binding-tag.high {
+  background: rgba(255, 149, 0, 0.12);
+  color: #ff9500;
+}
+
+.binding-tag.low {
+  background: rgba(52, 199, 89, 0.12);
+  color: #248a3d;
+}
+
+.binding-tag.formula {
+  background: rgba(88, 86, 214, 0.12);
+  color: #5856d6;
+}
+
+.binding-tag.budget {
+  background: rgba(0, 0, 0, 0.06);
+  color: #48484a;
 }
 </style>

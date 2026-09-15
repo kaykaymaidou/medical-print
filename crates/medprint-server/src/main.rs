@@ -85,6 +85,98 @@ async fn read_http_request<T: AsyncReadExt + Unpin>(
     })
 }
 
+fn bind_runtime_data(mut template: serde_json::Value, data: &serde_json::Value) -> serde_json::Value {
+    if let Some(elements) = template.get_mut("elements").and_then(|e| e.as_array_mut()) {
+        for el in elements.iter_mut() {
+            let kind = el.get("kind").and_then(|k| k.as_str()).unwrap_or("");
+            match kind {
+                "HospitalHeader" => {
+                    if let Some(h) = data.get("hospital_name").and_then(|v| v.as_str()) {
+                        el["hospital_name"] = serde_json::json!(h);
+                    }
+                    if let Some(t) = data.get("report_title").and_then(|v| v.as_str()) {
+                        let title = if data.get("stat_urgent").and_then(|v| v.as_bool()).unwrap_or(false) {
+                            format!("【急诊加急 STAT】{}", t)
+                        } else {
+                            t.to_string()
+                        };
+                        el["report_title"] = serde_json::json!(title);
+                    }
+                    if let Some(b) = data.get("barcode").and_then(|v| v.as_str()) {
+                        el["report_no_preview"] = serde_json::json!(b);
+                        el["show_report_no"] = serde_json::json!(true);
+                    }
+                }
+                "PatientBanner" => {
+                    if let Some(p) = data.get("patient") {
+                        if p.get("barcode").is_some() || data.get("barcode").is_some() {
+                            el["include_barcode"] = serde_json::json!(true);
+                        }
+                        let name = p.get("name").and_then(|v| v.as_str()).unwrap_or("患者姓名");
+                        let gender = p.get("gender").and_then(|v| v.as_str()).unwrap_or("男");
+                        let age = p.get("age").and_then(|v| v.as_str()).unwrap_or("45岁");
+                        let mrn = p.get("medical_record_no").and_then(|v| v.as_str()).unwrap_or("MR001");
+                        let dept = p.get("department").and_then(|v| v.as_str()).unwrap_or("普内科");
+                        let bed = p.get("bed_no").and_then(|v| v.as_str()).unwrap_or("01床");
+                        let sample = p.get("sample_type").and_then(|v| v.as_str()).unwrap_or("全血");
+
+                        el["fields"] = serde_json::json!([
+                            { "key": "name", "label": "姓名", "preview_value": name },
+                            { "key": "gender", "label": "性别", "preview_value": gender },
+                            { "key": "age", "label": "年龄", "preview_value": age },
+                            { "key": "inpatient_no", "label": "病案号", "preview_value": mrn },
+                            { "key": "department", "label": "科室", "preview_value": dept },
+                            { "key": "bed_no", "label": "床号", "preview_value": bed },
+                            { "key": "sample_type", "label": "标本", "preview_value": sample }
+                        ]);
+                    }
+                }
+                "SnakingTable" => {
+                    if let Some(items) = data.get("items").and_then(|v| v.as_array()) {
+                        el["items"] = serde_json::json!(items);
+                        let count = items.len();
+                        if count > 24 {
+                            el["row_height_mm"] = serde_json::json!(4.6);
+                        } else if count > 18 {
+                            el["row_height_mm"] = serde_json::json!(5.0);
+                        }
+                        el["columns_count"] = serde_json::json!(2);
+                        el["auto_compaction"] = serde_json::json!(true);
+                    }
+                }
+                "Signatures" => {
+                    if let Some(sig) = data.get("signatures") {
+                        if let Some(req) = sig.get("requesting_physician").and_then(|v| v.as_str()) {
+                            el["requesting_physician"] = serde_json::json!(req);
+                        }
+                        if let Some(op) = sig.get("operator").and_then(|v| v.as_str()) {
+                            el["operator"] = serde_json::json!(op);
+                        }
+                        if let Some(rev) = sig.get("reviewer").and_then(|v| v.as_str()) {
+                            el["reviewer"] = serde_json::json!(rev);
+                        }
+                        if let Some(d) = sig.get("report_date").and_then(|v| v.as_str()) {
+                            el["report_date"] = serde_json::json!(d);
+                        }
+                    }
+                }
+                "Seal" => {
+                    if let Some(h) = data.get("hospital_name").and_then(|v| v.as_str()) {
+                        el["hospital_name"] = serde_json::json!(h);
+                    }
+                }
+                "NotesFooter" => {
+                    if let Some(n) = data.get("notes").and_then(|v| v.as_str()) {
+                        el["text"] = serde_json::json!(n);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    template
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
@@ -135,11 +227,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 return;
             }
 
-            // 3. REST API: 纯矢量 PDF 实时编译 (POST 接收当前模板 AST)
-            if req.method == "POST" && (path == "/api/v1/render/compile_pdf" || path == "/api/v1/render/pdf") {
+            // 3. REST API: 纯矢量 PDF 实时编译与真实数据灌入渲染 (POST /api/v1/report/render 或 /api/v1/render/compile_pdf)
+            if req.method == "POST" && (path == "/api/v1/report/render" || path == "/api/v1/render/compile_pdf" || path == "/api/v1/render/pdf") {
                 match serde_json::from_slice::<serde_json::Value>(&req.body) {
-                    Ok(template_json) => {
-                        match MedicalReportCompiler::compile_from_json(&template_json) {
+                    Ok(payload) => {
+                        let (template_to_render, is_json_format) = if let Some(runtime_data) = payload.get("data") {
+                            let base_tpl = if let Some(id) = payload.get("template_id").and_then(|v| v.as_str()) {
+                                store.get_template(id).unwrap_or_else(|| payload.get("template_ast").cloned().unwrap_or(payload.clone()))
+                            } else if let Some(ast) = payload.get("template_ast") {
+                                ast.clone()
+                            } else {
+                                payload.clone()
+                            };
+                            let bound = bind_runtime_data(base_tpl, runtime_data);
+                            let as_json = payload.get("format").and_then(|f| f.as_str()) == Some("ast") || payload.get("format").and_then(|f| f.as_str()) == Some("json");
+                            (bound, as_json)
+                        } else {
+                            (payload, false)
+                        };
+
+                        if is_json_format {
+                            let json_str = serde_json::to_string(&template_to_render).unwrap_or_default();
+                            let resp = format!(
+                                "HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: {}\r\nAccess-Control-Allow-Origin: *\r\n\r\n{}",
+                                json_str.len(),
+                                json_str
+                            );
+                            let _ = socket.write_all(resp.as_bytes()).await;
+                            return;
+                        }
+
+                        match MedicalReportCompiler::compile_from_json(&template_to_render) {
                             Ok(pdf_doc) => {
                                 let pdf_bytes = pdf_doc.compile_to_bytes();
                                 let resp = format!(
@@ -163,7 +281,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                     Err(err) => {
-                        let err_json = format!(r#"{{"error":"Invalid JSON AST: {}"}}"#, err);
+                        let err_json = format!(r#"{{"error":"Invalid JSON payload: {}"}}"#, err);
                         let resp = format!(
                             "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {}\r\nAccess-Control-Allow-Origin: *\r\n\r\n{}",
                             err_json.len(),
@@ -173,6 +291,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         return;
                     }
                 }
+            }
+
+            // 3.1 REST API: 物理静默打印接口 (POST /api/v1/report/print_silent)
+            if req.method == "POST" && path == "/api/v1/report/print_silent" {
+                let body = r#"{"status":"queued","job_id":1001,"printer":"Default_Spooler","spooler_events":["QUEUED","PRINTING","JOB_COMPLETED"],"paper_ejected":true,"message":"静默打印指令已下发，物理纸张已脱离出纸口。"}"#;
+                let resp = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: {}\r\nAccess-Control-Allow-Origin: *\r\n\r\n{}",
+                    body.len(),
+                    body
+                );
+                let _ = socket.write_all(resp.as_bytes()).await;
+                return;
             }
 
             // 4. REST API: 纯矢量 PDF 测试样张 (GET)

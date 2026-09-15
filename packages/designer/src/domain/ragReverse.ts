@@ -196,3 +196,95 @@ export async function executeRagReverse(
 export function castToReportTemplate(tpl: Record<string, unknown>): ReportTemplate {
   return tpl as unknown as ReportTemplate
 }
+
+export {
+  bindRuntimeDataToAst,
+  type RuntimeReportData,
+  type BindingResult,
+} from '../../../ai-agent/src/binding/dataBinder'
+
+export const REAL_CLINICAL_SCENARIOS = [
+  {
+    id: 'icu_stat',
+    name: '🔴 重症监护室 (ICU) 急诊加急危急值化验',
+    description: '含肝肾功能急查，血清肌酐自动触发 eGFR 计算，血清钾 6.8mmol/L 触发危急值报警',
+    data: {
+      hospital_name: 'XX市第一人民医院 (真实业务出单)',
+      report_title: '急诊生化检验报告单',
+      stat_urgent: true,
+      barcode: 'ICU20260915888',
+      patient: {
+        name: '赵建设',
+        gender: '男',
+        age: '62岁',
+        department: '重症医学科 (ICU)',
+        bed_no: 'ICU-03床',
+        medical_record_no: 'MR998231',
+        sample_type: '肝素抗凝血浆',
+      },
+      items: [
+        { item_name: '丙氨酸氨基转移酶 (ALT)', item_abbr: 'ALT', result_value: '188.5', unit: 'U/L', reference_range: '9.0-50.0' },
+        { item_name: '天门冬氨酸氨基转移酶 (AST)', item_abbr: 'AST', result_value: '142.0', unit: 'U/L', reference_range: '15.0-40.0' },
+        { item_name: '总胆红素 (TBIL)', item_abbr: 'TBIL', result_value: '38.2', unit: 'μmol/L', reference_range: '3.4-20.5' },
+        { item_name: '直接胆红素 (DBIL)', item_abbr: 'DBIL', result_value: '16.4', unit: 'μmol/L', reference_range: '0.0-6.8' },
+        { item_name: '血清肌酐 (Scr)', item_abbr: 'Scr', result_value: '165.0', unit: 'μmol/L', reference_range: '57.0-97.0' },
+        { item_name: '血尿素氮 (BUN)', item_abbr: 'BUN', result_value: '14.2', unit: 'mmol/L', reference_range: '2.8-7.2' },
+        { item_name: '血清钾 (K)', item_abbr: 'K', result_value: '6.8', unit: 'mmol/L', reference_range: '3.5-5.3' },
+        { item_name: '血清钠 (Na)', item_abbr: 'Na', result_value: '138.0', unit: 'mmol/L', reference_range: '135.0-145.0' },
+        { item_name: '血清氯 (Cl)', item_abbr: 'Cl', result_value: '101.0', unit: 'mmol/L', reference_range: '96.0-108.0' },
+        { item_name: '总钙 (Ca)', item_abbr: 'Ca', result_value: '2.15', unit: 'mmol/L', reference_range: '2.11-2.52' },
+      ],
+      signatures: {
+        requesting_physician: '刘副主任',
+        sampling_person: '黄护士',
+        operator: '郑检验技师',
+        reviewer: '孙副主任技师',
+        report_date: '2026-09-15 22:30',
+      },
+      notes: '注：危急值项目（血清钾 6.8 mmol/L，ALT 188.5 U/L）已于 22:32 电话通知 ICU 责任医生刘医生接听。',
+    },
+  },
+  {
+    id: 'opd_routine',
+    name: '🔵 门诊常规血常规 24 项 (双列折流平衡)',
+    description: '常规体检 24 项指标，自动开启 A5 横向双列折流与单页紧凑预算守卫',
+    data: {
+      hospital_name: 'XX市第一人民医院 (真实业务出单)',
+      report_title: '临床血液学检验报告单',
+      stat_urgent: false,
+      barcode: 'OPD20260915123',
+      patient: {
+        name: '张爱华',
+        gender: '女',
+        age: '38岁',
+        department: '健康体检科',
+        bed_no: '门诊体检',
+        medical_record_no: 'TJ009822',
+        sample_type: 'EDTA抗凝全血',
+      },
+      items: [
+        { item_name: '白细胞计数', item_abbr: 'WBC', result_value: '6.2', unit: '10^9/L', reference_range: '3.5-9.5' },
+        { item_name: '红细胞计数', item_abbr: 'RBC', result_value: '4.35', unit: '10^12/L', reference_range: '3.8-5.1' },
+        { item_name: '血红蛋白', item_abbr: 'HGB', result_value: '132.0', unit: 'g/L', reference_range: '115-150' },
+        { item_name: '红细胞压积', item_abbr: 'HCT', result_value: '39.8', unit: '%', reference_range: '35-45' },
+        { item_name: '平均红细胞体积', item_abbr: 'MCV', result_value: '91.5', unit: 'fL', reference_range: '82-100' },
+        { item_name: '平均血红蛋白量', item_abbr: 'MCH', result_value: '30.3', unit: 'pg', reference_range: '27-34' },
+        { item_name: '平均血红蛋白浓度', item_abbr: 'MCHC', result_value: '331.0', unit: 'g/L', reference_range: '316-354' },
+        { item_name: '血小板计数', item_abbr: 'PLT', result_value: '228.0', unit: '10^9/L', reference_range: '125-350' },
+        { item_name: '中性粒细胞百分比', item_abbr: 'NEUT%', result_value: '58.4', unit: '%', reference_range: '40-75' },
+        { item_name: '淋巴细胞百分比', item_abbr: 'LYMPH%', result_value: '32.1', unit: '%', reference_range: '20-50' },
+        { item_name: '单核细胞百分比', item_abbr: 'MONO%', result_value: '6.2', unit: '%', reference_range: '3-10' },
+        { item_name: '嗜酸性粒细胞百分比', item_abbr: 'EO%', result_value: '2.5', unit: '%', reference_range: '0.4-8' },
+        { item_name: '嗜碱性粒细胞百分比', item_abbr: 'BASO%', result_value: '0.8', unit: '%', reference_range: '0-1' },
+      ],
+      signatures: {
+        requesting_physician: '王医生',
+        sampling_person: '陈护士',
+        operator: '李技师',
+        reviewer: '赵主任',
+        report_date: '2026-09-15 11:15',
+      },
+      notes: '注：本报告仅对本次送检标本检验结果负责。如有疑问请在24小时内申请复查。',
+    },
+  },
+]

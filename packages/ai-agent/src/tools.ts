@@ -3,6 +3,7 @@
 
 import { parseRdlxXml, rdlxToFingerprint } from './rag/rdlxParser.js'
 import { reverseGenerateTemplate } from './rag/index.js'
+import { bindRuntimeDataToAst, type RuntimeReportData } from './binding/dataBinder.js'
 
 export interface ToolDefinition {
   name: string
@@ -195,6 +196,43 @@ export const MEDPRINT_TOOLS: ToolDefinition[] = [
         raw_content: { type: 'string', description: '原始医疗文档文本或表格内容' },
       },
       required: ['raw_content'],
+    },
+  },
+  {
+    name: 'medprint_bind_data',
+    description: '将真实患者信息与化验项目数据（JSON Payload）动态灌入模板 AST 槽位，自动执行高低值判定（↑/↓/Critical）与单页硬预算守护。',
+    parameters: {
+      type: 'object',
+      properties: {
+        template_ast: { type: 'object', description: '待灌入的模板 AST JSON 对象' },
+        runtime_data: {
+          type: 'object',
+          properties: {
+            hospital_name: { type: 'string' },
+            report_title: { type: 'string' },
+            barcode: { type: 'string' },
+            stat_urgent: { type: 'boolean', description: '是否为急诊加急' },
+            patient: { type: 'object', description: '患者字段 (name, gender, age, bed_no, department, medical_record_no 等)' },
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  item_name: { type: 'string' },
+                  result_value: { type: 'string' },
+                  unit: { type: 'string' },
+                  reference_range: { type: 'string' },
+                },
+                required: ['item_name', 'result_value'],
+              },
+            },
+            signatures: { type: 'object' },
+          },
+          required: ['items'],
+          description: '真实业务患者与化验数据',
+        },
+      },
+      required: ['template_ast', 'runtime_data'],
     },
   },
 ]
@@ -486,6 +524,17 @@ export class MedPrintToolExecutor {
           pipeline_steps: res.pipelineSteps,
           elapsed_ms: res.elapsedMs,
           message: `✅ 逆向生成成功！命中骨架【${res.retrieval.matchedArchetype.name}】(${(res.retrieval.confidence * 100).toFixed(1)}%)，耗时 ${res.elapsedMs}ms。`,
+        }
+      }
+
+      case 'medprint_bind_data': {
+        const { template_ast, runtime_data } = args
+        const result = bindRuntimeDataToAst(template_ast, runtime_data as RuntimeReportData)
+        return {
+          status: 'success',
+          bound_ast: result.boundAst,
+          stats: result.stats,
+          message: `✅ 真实数据已成功灌入模板 AST！注入 ${result.stats.itemsCount} 项化验结果（危急值: ${result.stats.criticalCount}, 偏高: ${result.stats.highCount}, 偏低: ${result.stats.lowCount}），行高自适应微调至 ${result.stats.appliedRowHeightMm}mm。`,
         }
       }
 
