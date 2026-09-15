@@ -1,11 +1,12 @@
 <div align="center">
 
-# 🏥 MedPrint
+# 🏥 MedPrint (medical-print)
 
 **面向医疗健康与高精单据的下一代跨平台打印引擎与排版系统**
 
 *Next-Generation Medical Report Designer & Cross-Platform Printing Engine (Rust + WASM + Vue 3 + RAG/Pi-Agent)*
 
+[![GitHub Repo](https://img.shields.io/badge/GitHub-kaykaymaidou%2Fmedical--print-181717?logo=github)](https://github.com/kaykaymaidou/medical-print)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 [![Vue 3](https://img.shields.io/badge/vue-3.4%2B-green.svg)](https://vuejs.org/)
@@ -14,7 +15,35 @@
 [![GrapeCity Migration](https://img.shields.io/badge/GrapeCity%20ActiveReports-RDLX%20100%25%20无损迁移-emerald.svg)](#四葡萄城-activereports-rdlx-生态深度解析与无损迁移)
 [![MCP Protocol](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-blueviolet.svg)](#-cli-命令行工具与-mcp-本地模型接入指南)
 
+<p align="center">
+  <b>100% 纯 Rust 纯矢量直出</b> | <b>葡萄城 ActiveReports (RDLX) 无损迁移</b> | <b>A5 双列折流平衡</b> | <b>单页预算硬守卫</b><br/>
+  <b>RAG 骨架检索 + Pi-Agent 极简槽位填充</b> | <b>运行时真实数据绑定引擎</b> | <b>Model Context Protocol (MCP)</b> | <b>信创全平台同构</b>
+</p>
+
 </div>
+
+---
+
+> ### 📋 GitHub 仓库设置建议 (Repository Description & Topics)
+> - **About Description**：
+>   ```text
+>   🏥 面向医疗健康与高精单据的下一代跨平台打印引擎与排版系统。100% 纯 Rust 纯矢量直出、葡萄城 ActiveReports (RDLX) 无损迁移、A5 横向双列折流、单页预算硬守卫、RAG 骨架检索 + Pi-Agent 极简槽位填充、信创国产化适配。Next-gen medical report designer & vector printing engine (Rust + WASM + Vue 3 + RAG/MCP).
+>   ```
+> - **Search Topics / Tags**：
+>   `medical`, `healthcare`, `printing`, `report-designer`, `rust`, `webassembly`, `vue3`, `activereports`, `rdlx`, `mcp`, `rag`, `agent`, `barcode`, `lis`, `his`, `pacs`, `xinchuang`, `deepseek`, `ollama`
+
+---
+
+## 🏷️ 检索关键字与行业标签 (Keywords for Search Engine Discovery)
+
+为了方便医疗软件（HIS / LIS / PACS / EMR）、医疗仪器厂商（POCT / 生化 / 免疫 / 凝血）以及信创集成商精准检索，本项目覆盖以下核心领域技术词：
+
+* **核心功能词**：`medical-print`、医疗报表设计器、医院化验单打印系统、门诊住院处方笺打印、检验科质控报告、心电图绝对物理网格、PACS 影像排版、血栓弹力图 (TEG) 纺锤反应曲线；
+* **竞品与旧系统替代**：葡萄城报表替代方案、ActiveReports 12/14 RDLX 转换迁移、C-Lodop 替代方案、FastReport 信创国产化替代、SpreadJS 医疗打印优化；
+* **排版与算法词**：A5 横向双列折流平衡算法（Snaking Flow Table）、单页预算硬守卫（Single-Page Budget Guard）、空间多边形障碍物动态避让（Obstacle Avoidance）、隐形无框线表格 X 轴直方图投影切分；
+* **底层引擎与格式**：纯 Rust 矢量 PDF 动态编译器 (%PDF-1.4)、ISO/IEC 15417 Code 128 矢量条码无锯齿、浏览器端 WebAssembly (WASM) 2ms 本地排版直出；
+* **AI 智能体与协议**：Model Context Protocol (MCP) Server、DeepSeek Harness (dsh) 医疗排版工具链、RAG 骨架知识库检索、Pi-Agent 最小化槽位填空、本地私有化模型支持 (Ollama / vLLM / Qwen2.5 / DeepSeek-R1)；
+* **数据绑定与接口**：运行时动态数据绑定引擎 (Runtime Data Interpolator)、自动参考区间比对与危急值 (Critical Flag) 标红、eGFR (CKD-EPI 2021) 临床公式自动运算、REST API (`POST /api/v1/report/render`)、CLI 批处理工具。
 
 ---
 

@@ -1,8 +1,32 @@
 {
-  "name": "medprint-monorepo",
+  "name": "medical-print",
   "version": "0.1.0",
   "private": true,
-  "description": "Next-Gen Medical Report Designer & Cross-Platform Printing Engine (Rust + WASM + Vue3)",
+  "description": "面向医疗健康与高精单据的下一代跨平台打印引擎与排版系统。100% 纯 Rust 纯矢量直出、葡萄城 ActiveReports (RDLX) 无损迁移、A5 横向双列折流、单页预算硬守卫、RAG 骨架检索 + Pi-Agent 极简槽位填充、信创国产化适配。Next-Gen Medical Report Designer & Cross-Platform Printing Engine (Rust + WASM + Vue 3 + RAG/MCP).",
+  "keywords": [
+    "medical-print",
+    "medical-report-designer",
+    "hospital-printing",
+    "activereports",
+    "rdlx",
+    "rust",
+    "webassembly",
+    "vue3",
+    "mcp",
+    "rag",
+    "barcode",
+    "lis",
+    "his",
+    "pacs",
+    "xinchuang",
+    "deepseek",
+    "ollama"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kaykaymaidou/medical-print.git"
+  },
+  "homepage": "https://github.com/kaykaymaidou/medical-print#readme",
   "scripts": {
     "dev:designer": "pnpm --filter @medprint/designer dev",
     "build:designer": "pnpm --filter @medprint/designer build",
@@ -11,6 +35,7 @@
     "build:wasm": "wasm-pack build crates/medprint-wasm --target web --out-dir ../../packages/designer/src/wasm"
   },
   "devDependencies": {
+    "@types/node": "^20.19.34",
     "typescript": "^5.4.5"
   },
   "packageManager": "pnpm@10.12.1"
