@@ -206,6 +206,13 @@
         </div>
         <div class="toolbar-right">
           <button
+            class="btn-pro-edit btn-rag-action"
+            title="Word/PDF/DSL RAG 知识库检索与 Pi Agent 最小化逆向生成"
+            @click="showRagReverse = true"
+          >
+            🧬 智能逆向 (RAG)
+          </button>
+          <button
             class="btn-pro-edit"
             :class="{ active: showConstraintGuides }"
             title="透视空间约束规格：实时呈现障碍物避让缓冲带与对齐中轴"
@@ -412,6 +419,13 @@
       :visible="showBatchModal"
       @close="showBatchModal = false"
     />
+
+    <!-- 🧬 RAG 知识库检索与 Pi Agent 逆向生成工作台 -->
+    <RagReverseModal
+      :visible="showRagReverse"
+      @close="showRagReverse = false"
+      @apply="handleApplyRagTemplate"
+    />
   </div>
 </template>
 
@@ -420,6 +434,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppleSwitch from '../components/common/AppleSwitch.vue'
 import ArchiveModal, { type SavedTemplate } from '../components/common/ArchiveModal.vue'
 import BatchPrintModal from '../components/common/BatchPrintModal.vue'
+import RagReverseModal from '../components/common/RagReverseModal.vue'
 import ConstraintInspector from '../components/common/ConstraintInspector.vue'
 import VisualConstraintOverlay from '../components/common/VisualConstraintOverlay.vue'
 import PhysicalRuler from '../components/common/PhysicalRuler.vue'
@@ -513,6 +528,7 @@ const zoomScale = ref(1.0)
 const spoolerBanner = ref('')
 const showArchiveModal = ref(false)
 const showBatchModal = ref(false)
+const showRagReverse = ref(false)
 
 // 标尺鼠标追踪
 const cursorX = ref(-1)
@@ -1071,6 +1087,16 @@ function handleLoadTemplate(item: SavedTemplate) {
   else selectPreset('lis_a5')
   showArchiveModal.value = false
   spoolerBanner.value = `✓ 已从内网本地库载入模板：${item.name}`
+}
+
+function handleApplyRagTemplate(newTemplate: ReportTemplate) {
+  reportTemplate.value = newTemplate
+  reportTitle.value = newTemplate.name
+  const headerEl = findElement(newTemplate, 'HospitalHeader')
+  if (headerEl) {
+    hospitalName.value = headerEl.hospital_name
+  }
+  spoolerBanner.value = `✓ 已成功应用 RAG 知识库检索与 Pi Agent 逆向生成的模板：【${newTemplate.name}】！`
 }
 
 function handleDeleteTemplate(id: string) {
@@ -1634,6 +1660,17 @@ async function handleExportPdf() {
   background: var(--blue);
   color: #fff;
   transform: translateY(-1px);
+}
+.btn-rag-action {
+  background: linear-gradient(135deg, rgba(0, 113, 227, 0.12), rgba(88, 86, 214, 0.12));
+  color: #0071e3;
+  border-color: rgba(0, 113, 227, 0.35);
+  font-weight: 650;
+  box-shadow: 0 1px 3px rgba(0, 113, 227, 0.12);
+}
+.btn-rag-action:hover {
+  background: linear-gradient(135deg, #0071e3, #5856d6);
+  color: #fff;
 }
 .zoom-label {
   font-size: 11px;

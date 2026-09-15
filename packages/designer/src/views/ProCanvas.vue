@@ -76,6 +76,7 @@
 
       <div class="toolbar-right">
         <!-- 实验室与功能模态框触发器 -->
+        <button class="tool-action-btn rag-btn" @click="showRagReverse = true">🧬 智能逆向</button>
         <button class="tool-action-btn" @click="showFormulaLab = true">公式</button>
         <button class="tool-action-btn" @click="showArchive = true">档案</button>
         <button class="tool-action-btn" @click="exportJsonTemplate">导出</button>
@@ -744,6 +745,13 @@
       :visible="showBatchPrint"
       @close="showBatchPrint = false"
     />
+
+    <!-- 弹窗组件：RAG 知识库检索与 Pi Agent 逆向生成工作台 -->
+    <RagReverseModal
+      :visible="showRagReverse"
+      @close="showRagReverse = false"
+      @apply="handleApplyRagTemplate"
+    />
   </div>
 </template>
 
@@ -757,6 +765,7 @@ import FormulaLabModal from '../components/medical/FormulaLabModal.vue'
 import PacsAdjustModal from '../components/medical/PacsAdjustModal.vue'
 import ArchiveModal from '../components/common/ArchiveModal.vue'
 import BatchPrintModal from '../components/common/BatchPrintModal.vue'
+import RagReverseModal from '../components/common/RagReverseModal.vue'
 import ConstraintInspector from '../components/common/ConstraintInspector.vue'
 import VisualConstraintOverlay from '../components/common/VisualConstraintOverlay.vue'
 import {
@@ -835,6 +844,7 @@ const showFormulaLab = ref(false)
 const showPacsAdjust = ref(false)
 const showArchive = ref(false)
 const showBatchPrint = ref(false)
+const showRagReverse = ref(false)
 
 const selectedElementId = ref<string | null>(null)
 const draggingSplit = ref(false)
@@ -1307,6 +1317,13 @@ function handleLoadArchiveTemplate(item: any) {
   alert(`已载入本地模板【${item.name}】！`)
 }
 
+function handleApplyRagTemplate(newTemplate: ReportTemplate) {
+  reportTemplate.value = newTemplate
+  syncMarginDraft()
+  relayout()
+  selectedElementId.value = elements.value[0]?.id || null
+}
+
 function handleDeleteArchiveTemplate(id: string) {
   savedTemplates.value = savedTemplates.value.filter(t => t.id !== id)
 }
@@ -1541,6 +1558,17 @@ function handlePrintPdf() {
   box-shadow: 0 4px 12px rgba(0, 113, 227, 0.22);
 }
 .tool-action-btn.primary:hover { background: var(--blue-hover); }
+.tool-action-btn.rag-btn {
+  background: linear-gradient(135deg, rgba(0, 113, 227, 0.12), rgba(88, 86, 214, 0.12));
+  color: #0071e3;
+  border-color: rgba(0, 113, 227, 0.35);
+  font-weight: 650;
+  box-shadow: 0 1px 3px rgba(0, 113, 227, 0.12);
+}
+.tool-action-btn.rag-btn:hover {
+  background: linear-gradient(135deg, #0071e3, #5856d6);
+  color: #fff;
+}
 
 .pro-main-area {
   flex: 1;

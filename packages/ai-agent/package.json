@@ -1,6 +1,7 @@
 {
   "name": "@medprint/ai-agent",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "description": "DeepSeek Harness Plugin & Autonomous AI Agent for MedPrint Medical Report Generation",
   "main": "dist/index.js",

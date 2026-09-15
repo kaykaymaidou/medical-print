@@ -7,3 +7,5 @@ export * from './slotLayout'
 export * from './engineBridge'
 export * from './modelSettings'
 export * from './clinicalAgent'
+export * from './ragReverse'
+
