@@ -56,8 +56,16 @@ const TEG_KEYWORDS = ['血栓弹力图', 'TEG', '凝血反应时间', '凝固角
 const PACS_KEYWORDS = ['超声', 'CT', '核磁', 'DR', '放射', '影像表现', '影像诊断', '检查部位', '所见', '印象']
 const RX_KEYWORDS = ['处方', 'Rp', '用法', '用量', '每次剂量', '频次', '剂型', '药品名称', '规格']
 
+import { isRdlxXml, parseRdlxXml, rdlxToFingerprint } from './rdlxParser.js'
+
 export function analyzeDocumentFingerprint(rawInput: string): DocumentFingerprint {
   const text = rawInput.trim()
+
+  // 0. 葡萄城 ActiveReports RDLX 报表模板嗅探
+  if (isRdlxXml(text)) {
+    const rdlx = parseRdlxXml(text)
+    return rdlxToFingerprint(rdlx)
+  }
 
   // 1. 嗅探医院名称
   let hospitalName: string | undefined

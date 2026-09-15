@@ -117,6 +117,63 @@ CI 凝血综合指数 +1.2 正常 -3.0-+3.0
 超声医师：吴医生  主任医师审核：郑教授  报告时间：2026-09-15 14:30
 要求A4纵向排版，顶部包含2x2影像采集窗口，下方排列超声所见与诊断结论`,
   },
+  {
+    id: 'sample_rdlx_grapecity',
+    name: '葡萄城 ActiveReports RDLX 模板 (A5单列)',
+    sourceType: '旧系统DSL',
+    tag: 'RDLX 零代码迁移',
+    content: `<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+\t<PageHeader>
+\t\t<Height>2cm</Height>
+\t\t<ReportItems>
+\t\t\t<Textbox Name="TextBox1"><Value>=Parameters!标题.Value</Value><Style><FontSize>16pt</FontSize><TextAlign>Center</TextAlign></Style></Textbox>
+\t\t\t<Textbox Name="TextBox2"><Value>姓名:</Value><Left>0.2cm</Left><Top>0.8cm</Top></Textbox>
+\t\t\t<Textbox Name="TextBox42"><Value>=First(Fields!姓名.Value, "dataset2")</Value><Left>1.2cm</Left><Top>0.8cm</Top></Textbox>
+\t\t\t<Textbox Name="TextBox4"><Value>性别:</Value><Left>0.2cm</Left><Top>1.4cm</Top></Textbox>
+\t\t\t<Textbox Name="TextBox43"><Value>=First(Fields!性别.Value, "dataset2")</Value><Left>1.2cm</Left><Top>1.4cm</Top></Textbox>
+\t\t\t<Textbox Name="TextBox44"><Value>年龄:</Value><Left>2.7cm</Left><Top>0.8cm</Top></Textbox>
+\t\t\t<Textbox Name="TextBox6"><Value>=First(Fields!年龄.Value, "dataset2")</Value><Left>3.8cm</Left><Top>0.8cm</Top></Textbox>
+\t\t\t<Textbox Name="TextBox12"><Value>床号:</Value><Left>2.7cm</Left><Top>1.4cm</Top></Textbox>
+\t\t\t<Textbox Name="TextBox13"><Value>=First(Fields!床号.Value, "dataset2")</Value><Left>3.8cm</Left><Top>1.4cm</Top></Textbox>
+\t\t\t<Textbox Name="TextBox24"><Value>样本号:</Value><Left>9.3cm</Left><Top>0.8cm</Top></Textbox>
+\t\t\t<Textbox Name="TextBox31"><Value>=First(Fields!样本号.Value, "dataset2")</Value><Left>10.6cm</Left><Top>0.8cm</Top></Textbox>
+\t\t</ReportItems>
+\t</PageHeader>
+\t<Body>
+\t\t<ReportItems>
+\t\t\t<Table Name="Table1">
+\t\t\t\t<DataSetName>dataset1</DataSetName>
+\t\t\t\t<Header>
+\t\t\t\t\t<TableRows><TableRow><TableCells>
+\t\t\t\t\t\t<TableCell><ReportItems><Textbox Name="c1"><Value>项目名称</Value></Textbox></ReportItems></TableCell>
+\t\t\t\t\t\t<TableCell><ReportItems><Textbox Name="c2"><Value>项目中文名</Value></Textbox></ReportItems></TableCell>
+\t\t\t\t\t\t<TableCell><ReportItems><Textbox Name="c3"><Value>结果</Value></Textbox></ReportItems></TableCell>
+\t\t\t\t\t\t<TableCell><ReportItems><Textbox Name="c4"><Value>单位</Value></Textbox></ReportItems></TableCell>
+\t\t\t\t\t\t<TableCell><ReportItems><Textbox Name="c5"><Value>参考值</Value></Textbox></ReportItems></TableCell>
+\t\t\t\t\t</TableCells></TableRow></TableRows>
+\t\t\t\t</Header>
+\t\t\t</Table>
+\t\t</ReportItems>
+\t</Body>
+\t<PageFooter>
+\t\t<ReportItems>
+\t\t\t<Textbox Name="f1"><Value>检验者:</Value><Left>0.5cm</Left></Textbox>
+\t\t\t<Textbox Name="f2"><Value>=First(Fields!检验者.Value, "dataset2")</Value><Left>2.0cm</Left></Textbox>
+\t\t\t<Textbox Name="f3"><Value>审核者:</Value><Left>6.0cm</Left></Textbox>
+\t\t\t<Textbox Name="f4"><Value>=First(Fields!审核者.Value, "dataset2")</Value><Left>7.5cm</Left></Textbox>
+\t\t</ReportItems>
+\t</PageFooter>
+\t<PageWidth>13.5cm</PageWidth>
+\t<PageHeight>19.5cm</PageHeight>
+\t<LeftMargin>0.1cm</LeftMargin>
+\t<RightMargin>0.1cm</RightMargin>
+\t<TopMargin>0.2cm</TopMargin>
+\t<DataSets>
+\t\t<DataSet Name="dataset1"><Fields><Field Name="项目名称"/><Field Name="结果"/><Field Name="单位"/><Field Name="参考值"/></Fields></DataSet>
+\t\t<DataSet Name="dataset2"><Fields><Field Name="姓名"/><Field Name="性别"/><Field Name="年龄"/><Field Name="床号"/><Field Name="检验者"/><Field Name="审核者"/></Fields></DataSet>
+\t</DataSets>
+</Report>`,
+  },
 ]
 
 export async function executeRagReverse(

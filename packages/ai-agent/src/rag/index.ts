@@ -11,6 +11,7 @@ export * from './fingerprinter.js'
 export * from './knowledgeBase.js'
 export * from './retriever.js'
 export * from './slotFiller.js'
+export * from './rdlxParser.js'
 
 export interface ReverseGenerationOptions {
   modelConfig?: ModelProviderConfig

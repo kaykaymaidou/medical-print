@@ -44,6 +44,10 @@
                 {{ sample.name }}
                 <span class="chip-tag">{{ sample.tag }}</span>
               </button>
+              <label class="preset-chip upload-chip" title="支持直接导入葡萄城 .rdlx 报表、Word 提取文本或旧版 JSON">
+                📂 导入外部模板 (.rdlx / .json / .txt)
+                <input type="file" accept=".rdlx,.xml,.json,.txt" @change="handleFileUpload" style="display: none;" />
+              </label>
             </div>
           </div>
 
@@ -184,6 +188,18 @@ const pipelineSteps = ref<PipelineStepLog[]>([
 function loadSample(sample: PresetSample) {
   selectedSampleId.value = sample.id
   inputText.value = sample.content.trim()
+}
+
+function handleFileUpload(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (!target.files || target.files.length === 0) return
+  const file = target.files[0]
+  const reader = new FileReader()
+  reader.onload = () => {
+    inputText.value = String(reader.result || '')
+    selectedSampleId.value = 'uploaded_file'
+  }
+  reader.readAsText(file)
 }
 
 async function handleRunReverse() {
