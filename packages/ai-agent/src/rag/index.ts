@@ -93,7 +93,7 @@ export async function reverseGenerateTemplate(
     stepIndex: 4,
     name: '物理几何闭环校验 (Physical Budget Guard)',
     status: 'done',
-    message: `${slotFilling.physicalBudgetSummary}，输出 100% 封闭合规 AST，零外部模糊，就绪直出矢量 PDF`,
+    message: `${slotFilling.physicalBudgetSummary}，AST 校验通过，可直接交付矢量编译。`,
     details: {
       compactionAdjusted: slotFilling.compactionAdjusted,
       budget: slotFilling.physicalBudgetSummary,

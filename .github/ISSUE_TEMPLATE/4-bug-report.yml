@@ -1,4 +1,4 @@
-name: "🐛 缺陷报告 (Bug Report)"
+name: "缺陷报告 (Bug Report)"
 description: "报告核心排版引擎、WASM 渲染、公式计算或设计器界面中的缺陷"
 title: "[Bug]: "
 labels: ["bug"]

@@ -9,7 +9,7 @@
         <p class="subtitle">意图生成封闭 AST；页眉/患者字段可在此改。需要拖槽位排序时进 AST 审查。</p>
       </div>
 
-      <!-- 🤖 DeepSeek AI 智能助理卡片 -->
+      <!-- AI 辅助配置面板 -->
       <div class="apple-card ai-card">
         <div class="card-header">
           <div class="header-left">
@@ -173,7 +173,7 @@
       <div class="apple-card">
         <div class="card-header" style="cursor: pointer" @click="showConstraints = !showConstraints">
           <div class="header-left">
-            <span class="card-title">📐 空间约束规格</span>
+            <span class="card-title">空间约束规格</span>
           </div>
           <span class="pill-badge pill-tools">{{ showConstraints ? '收起' : '展开配置' }}</span>
         </div>
@@ -207,10 +207,10 @@
         <div class="toolbar-right">
           <button
             class="btn-pro-edit btn-rag-action"
-            title="Word/PDF/DSL RAG 知识库检索与 Pi Agent 最小化逆向生成"
+            title="多源文档 RAG 知识库检索与 Pi-Agent 逆向生成"
             @click="showRagReverse = true"
           >
-            🧬 智能逆向 (RAG)
+            逆向解析 (RAG)
           </button>
           <button
             class="btn-pro-edit"
@@ -218,7 +218,7 @@
             title="透视空间约束规格：实时呈现障碍物避让缓冲带与对齐中轴"
             @click="showConstraintGuides = !showConstraintGuides"
           >
-            {{ showConstraintGuides ? '📐 隐藏约束透视' : '📐 显示约束透视' }}
+            {{ showConstraintGuides ? '隐藏约束透视' : '显示约束透视' }}
           </button>
           <button class="btn-pro-edit" title="拖封闭槽位、细改页眉/患者条/折流表" @click="$emit('switch-to-canvas')">
             去 AST 审查（可拖组件）
@@ -403,7 +403,7 @@
       </div>
     </main>
 
-    <!-- 🗄️ 内网离线归档管理弹窗 -->
+    <!-- 离线模板归档管理弹窗 -->
     <ArchiveModal
       :visible="showArchiveModal"
       :templates="savedTemplates"
@@ -414,13 +414,13 @@
       @import-file="handleImportFileFromModal"
     />
 
-    <!-- 📑 批量打印与硬件队列监控弹窗 -->
+    <!-- 批量打印与硬件队列监控弹窗 -->
     <BatchPrintModal
       :visible="showBatchModal"
       @close="showBatchModal = false"
     />
 
-    <!-- 🧬 RAG 知识库检索与 Pi Agent 逆向生成工作台 -->
+    <!-- 报表逆向解析工作台 -->
     <RagReverseModal
       :visible="showRagReverse"
       @close="showRagReverse = false"
@@ -1073,9 +1073,9 @@ async function saveToLocalArchive() {
   // 同步持久化至医院内网本地归档服务 (./data/templates/)
   try {
     await saveTemplateToArchive(template)
-    spoolerBanner.value = `✓ 已成功存入医院内网档案库 (Server ./data/templates/ 及本地缓存)，可在任意离线电脑随时调用！`
+    spoolerBanner.value = '模板已保存至内网档案库与本地缓存。'
   } catch (e) {
-    spoolerBanner.value = `✓ 已保存到本地缓存！(内网服务端同步提示: ${e instanceof Error ? e.message : '离线状态'})`
+    spoolerBanner.value = `模板已保存至本地缓存 (服务端同步提示: ${e instanceof Error ? e.message : '离线状态'})`
   }
 }
 
@@ -1086,7 +1086,7 @@ function handleLoadTemplate(item: SavedTemplate) {
   else if (item.id.includes('rx')) selectPreset('prescription')
   else selectPreset('lis_a5')
   showArchiveModal.value = false
-  spoolerBanner.value = `✓ 已从内网本地库载入模板：${item.name}`
+  spoolerBanner.value = `已从内网档案库载入模板：${item.name}`
 }
 
 function handleApplyRagTemplate(newTemplate: ReportTemplate) {
@@ -1096,7 +1096,7 @@ function handleApplyRagTemplate(newTemplate: ReportTemplate) {
   if (headerEl) {
     hospitalName.value = headerEl.hospital_name
   }
-  spoolerBanner.value = `✓ 已成功应用 RAG 知识库检索与 Pi Agent 逆向生成的模板：【${newTemplate.name}】！`
+  spoolerBanner.value = `已载入逆向生成的模板：${newTemplate.name}`
 }
 
 function handleDeleteTemplate(id: string) {
@@ -1128,11 +1128,11 @@ function handlePrint() {
     spoolerBanner.value = `打印已拦截：${formatViolations(issues)}`
     return
   }
-  spoolerBanner.value = `打印机作业已提交（模板 ${template.id}）。状态机：QUEUED → PRINTING → JOB_COMPLETED；缺签名/条码已被约束器拦截。`
+  spoolerBanner.value = `打印作业已提交（模板 ${template.id}）。状态机：QUEUED → PRINTING → JOB_COMPLETED。`
 }
 
 async function handleExportPdf() {
-  spoolerBanner.value = `⏳ 正在通过 Rust 物理几何引擎编译纯矢量高精度 PDF (300/600 DPI)...`
+  spoolerBanner.value = '正在编译矢量 PDF...'
   try {
     const template = wizardToTemplate()
     const blob = await compileVectorPdfRemote(template)
@@ -1142,7 +1142,7 @@ async function handleExportPdf() {
     a.download = `${reportTitle.value}_300DPI_Vector.pdf`
     a.click()
     URL.revokeObjectURL(url)
-    spoolerBanner.value = `📄 [纯矢量直出] 已由 Rust 内核直出 300/600 DPI 纯矢量 A5 PDF，字形、印章与条码 100% 零失真！`
+    spoolerBanner.value = 'PDF 导出完成 (Rust 矢量引擎编译)。'
   } catch {
     // 服务端未连接时降级客户端生成
     const pdfHeader = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595.28 419.53]/Contents 4 0 R>>endobj 4 0 obj<</Length 88>>stream\n10 10 575 400 re S\n0.5 w\n10 380 m 585 380 l S\nBT /F1 14 Tf 40 395 Td (MedPrint Vector PDF) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\n0000000215 00000 n\ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n354\n%%EOF"
@@ -1153,7 +1153,7 @@ async function handleExportPdf() {
     a.download = `${reportTitle.value}_300DPI_Vector.pdf`
     a.click()
     URL.revokeObjectURL(url)
-    spoolerBanner.value = `📄 [纯矢量直出] 客户端快速导出 300 DPI 纯矢量 A5 PDF 完成。`
+    spoolerBanner.value = 'PDF 导出完成 (客户端模式)。'
   }
 }
 </script>

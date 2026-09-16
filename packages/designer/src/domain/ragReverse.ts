@@ -206,10 +206,10 @@ export {
 export const REAL_CLINICAL_SCENARIOS = [
   {
     id: 'icu_stat',
-    name: '🔴 重症监护室 (ICU) 急诊加急危急值化验',
-    description: '含肝肾功能急查，血清肌酐自动触发 eGFR 计算，血清钾 6.8mmol/L 触发危急值报警',
+    name: 'ICU 急诊加急化验 (危急值)',
+    description: '含肝肾功能急查，血清肌酐触发 eGFR 自动计算，血清钾 6.8mmol/L 触发危急值判定',
     data: {
-      hospital_name: 'XX市第一人民医院 (真实业务出单)',
+      hospital_name: '第一人民医院',
       report_title: '急诊生化检验报告单',
       stat_urgent: true,
       barcode: 'ICU20260915888',
@@ -246,10 +246,10 @@ export const REAL_CLINICAL_SCENARIOS = [
   },
   {
     id: 'opd_routine',
-    name: '🔵 门诊常规血常规 24 项 (双列折流平衡)',
-    description: '常规体检 24 项指标，自动开启 A5 横向双列折流与单页紧凑预算守卫',
+    name: '门诊血常规 24 项 (双列折流)',
+    description: '常规体检指标，采用 A5 横向双列折流与单页高度预算配置',
     data: {
-      hospital_name: 'XX市第一人民医院 (真实业务出单)',
+      hospital_name: '第一人民医院',
       report_title: '临床血液学检验报告单',
       stat_urgent: false,
       barcode: 'OPD20260915123',

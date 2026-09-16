@@ -3,10 +3,9 @@
     <div class="pacs-adjust-card">
       <div class="modal-header">
         <div class="title-wrap">
-          <span class="icon">🔬</span>
           <div>
-            <h3>PACS 影像窗宽窗位与高精打印调校 (DICOM Calibration)</h3>
-            <p class="subtitle">针对 300/600 DPI 纯激光/胶片打印机优化灰阶层次，杜绝大片黑斑与细节丢失</p>
+            <h3>PACS 影像窗宽窗位与打印参数调校 (DICOM Calibration)</h3>
+            <p class="subtitle">针对高分辨率打印输出优化灰阶阶调与对比度范围</p>
           </div>
         </div>
         <button class="btn-close" @click="$emit('close')">✕</button>
@@ -165,7 +164,7 @@
       <div class="modal-footer">
         <button class="apple-btn-secondary" @click="$emit('close')">取消</button>
         <button class="apple-btn-primary" @click="saveAdjustments">
-          💾 保存影像调校参数并应用到报表
+          保存影像调校参数并应用
         </button>
       </div>
     </div>

@@ -78,7 +78,7 @@ fn test_obstacle_aware_snaking_flow_zero_collision() {
         );
     }
 
-    println!("✅ 成功验证：32 项化验单在存在右侧 TEG 图表的情况下，实现 100% 空间避让零碰撞折流！");
+    println!("[TEST] Verified: 32 items flow with obstacle avoidance around TEG chart.");
 }
 
 #[test]

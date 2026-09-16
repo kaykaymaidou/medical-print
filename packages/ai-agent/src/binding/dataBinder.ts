@@ -1,11 +1,9 @@
 /**
- * MedPrint 运行时动态数据绑定引擎 (Runtime Data Binding Engine)
+ * MedPrint Runtime Data Binding Engine
  * 
- * 核心职责：
- * 1. 将第三方 HIS/LIS/POCT 传入的真实患者与化验数据（JSON Payload）动态灌入模板 AST 槽位；
- * 2. 自动根据检验结果值与参考区间执行临床高低值判定（↑/↓/Critical）；
- * 3. 自动触发临床医学公式计算（eGFR、BMI、LDL-C）；
- * 4. 自动执行单页预算硬守卫（超出容量自适应微缩行高或开启双列折流），保证 100% 单页打印。
+ * Binds incoming HIS/LIS/POCT payload data to report template AST elements,
+ * evaluates reference range alert flags, computes relevant clinical formulas,
+ * and adjusts row compaction to maintain single-page layout bounds.
  */
 
 export interface RuntimePatientData {

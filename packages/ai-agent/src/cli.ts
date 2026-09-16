@@ -13,7 +13,7 @@ import { startMcpServer } from './mcp.js'
 
 function printHelp(): void {
   console.log(`
-🏥 MedPrint CLI - Next-Gen Medical Report Engine Tools
+MedPrint CLI - Medical Report Engine Tools
 
 Usage:
   medprint-cli <command> [options]
@@ -58,12 +58,12 @@ async function main(): Promise<void> {
     case 'rdlx-parse': {
       const filePath = args[1]
       if (!filePath) {
-        console.error('❌ Error: Missing <file.rdlx> argument.')
+        console.error('Error: Missing <file.rdlx> argument.')
         process.exit(1)
       }
       const fullPath = path.resolve(process.cwd(), filePath)
       if (!fs.existsSync(fullPath)) {
-        console.error(`❌ Error: File not found: ${fullPath}`)
+        console.error(`Error: File not found: ${fullPath}`)
         process.exit(1)
       }
 
@@ -76,8 +76,8 @@ async function main(): Promise<void> {
 
       if (outPath) {
         fs.writeFileSync(outPath, JSON.stringify(res.template, null, 2), 'utf-8')
-        console.log(`✅ Converted RDLX [${path.basename(fullPath)}] -> [${outPath}] in ${res.elapsedMs}ms`)
-        console.log(`   Items extracted: ${rdlx.dataset1Fields.length}, Patient fields: ${rdlx.patientFields.length}`)
+        console.log(`[INFO] Converted RDLX [${path.basename(fullPath)}] -> [${outPath}] in ${res.elapsedMs}ms`)
+        console.log(`       Items extracted: ${rdlx.dataset1Fields.length}, Patient fields: ${rdlx.patientFields.length}`)
       } else {
         console.log(JSON.stringify(res.template, null, 2))
       }
@@ -87,7 +87,7 @@ async function main(): Promise<void> {
     case 'reverse': {
       const input = args[1]
       if (!input) {
-        console.error('❌ Error: Missing <text-or-file> argument.')
+        console.error('Error: Missing <text-or-file> argument.')
         process.exit(1)
       }
 
@@ -103,8 +103,8 @@ async function main(): Promise<void> {
 
       if (outPath) {
         fs.writeFileSync(outPath, JSON.stringify(res.template, null, 2), 'utf-8')
-        console.log(`✅ Reverse generated AST via RAG in ${res.elapsedMs}ms -> [${outPath}]`)
-        console.log(`   Matched archetype: ${res.retrieval.matchedArchetype.name} (${(res.retrieval.confidence * 100).toFixed(1)}%)`)
+        console.log(`[INFO] Reverse generated AST via RAG in ${res.elapsedMs}ms -> [${outPath}]`)
+        console.log(`       Matched archetype: ${res.retrieval.matchedArchetype.name} (${(res.retrieval.confidence * 100).toFixed(1)}%)`)
       } else {
         console.log(JSON.stringify(res.template, null, 2))
       }
@@ -115,17 +115,17 @@ async function main(): Promise<void> {
       const tplPath = args[1]
       const dataPath = args[2]
       if (!tplPath || !dataPath) {
-        console.error('❌ Error: Usage: medprint-cli bind <template.ast.json> <data.json> [-o <out.ast.json>]')
+        console.error('Error: Usage: medprint-cli bind <template.ast.json> <data.json> [-o <out.ast.json>]')
         process.exit(1)
       }
       const fullTpl = path.resolve(process.cwd(), tplPath)
       const fullData = path.resolve(process.cwd(), dataPath)
       if (!fs.existsSync(fullTpl)) {
-        console.error(`❌ Template file not found: ${fullTpl}`)
+        console.error(`Error: Template file not found: ${fullTpl}`)
         process.exit(1)
       }
       if (!fs.existsSync(fullData)) {
-        console.error(`❌ Data file not found: ${fullData}`)
+        console.error(`Error: Data file not found: ${fullData}`)
         process.exit(1)
       }
       const tplAst = JSON.parse(fs.readFileSync(fullTpl, 'utf-8'))
@@ -137,8 +137,8 @@ async function main(): Promise<void> {
 
       if (outPath) {
         fs.writeFileSync(outPath, JSON.stringify(boundAst, null, 2), 'utf-8')
-        console.log(`✅ Data bound to AST successfully -> [${outPath}]`)
-        console.log(`   Items: ${stats.itemsCount}, High: ${stats.highCount}, Low: ${stats.lowCount}, Critical: ${stats.criticalCount}`)
+        console.log(`[INFO] Data bound to AST successfully -> [${outPath}]`)
+        console.log(`       Items: ${stats.itemsCount}, High: ${stats.highCount}, Low: ${stats.lowCount}, Critical: ${stats.criticalCount}`)
       } else {
         console.log(JSON.stringify(boundAst, null, 2))
       }
@@ -149,17 +149,17 @@ async function main(): Promise<void> {
       const tplPath = args[1]
       const dataPath = args[2]
       if (!tplPath || !dataPath) {
-        console.error('❌ Error: Usage: medprint-cli render <template.ast.json> <data.json> [-o <out.pdf>] [-s <serverUrl>]')
+        console.error('Error: Usage: medprint-cli render <template.ast.json> <data.json> [-o <out.pdf>] [-s <serverUrl>]')
         process.exit(1)
       }
       const fullTpl = path.resolve(process.cwd(), tplPath)
       const fullData = path.resolve(process.cwd(), dataPath)
       if (!fs.existsSync(fullTpl)) {
-        console.error(`❌ Template file not found: ${fullTpl}`)
+        console.error(`Error: Template file not found: ${fullTpl}`)
         process.exit(1)
       }
       if (!fs.existsSync(fullData)) {
-        console.error(`❌ Data file not found: ${fullData}`)
+        console.error(`Error: Data file not found: ${fullData}`)
         process.exit(1)
       }
       const tplAst = JSON.parse(fs.readFileSync(fullTpl, 'utf-8'))
@@ -174,8 +174,8 @@ async function main(): Promise<void> {
         ? path.resolve(process.cwd(), args[outIndex + 1])
         : fullTpl.replace(/\.json$/i, '') + '_rendered.pdf'
 
-      console.log(`📡 Injected ${stats.itemsCount} real lab items (Critical: ${stats.criticalCount}, High: ${stats.highCount}, Low: ${stats.lowCount})...`)
-      console.log(`📡 Sending to compiler server: ${serverUrl}/api/v1/render/compile_pdf ...`)
+      console.log(`[INFO] Bound ${stats.itemsCount} lab items (Critical: ${stats.criticalCount}, High: ${stats.highCount}, Low: ${stats.lowCount})`)
+      console.log(`[INFO] Sending to compiler server: ${serverUrl}/api/v1/render/compile_pdf`)
 
       try {
         const resp = await fetch(`${serverUrl}/api/v1/render/compile_pdf`, {
@@ -188,10 +188,10 @@ async function main(): Promise<void> {
         }
         const pdfBuf = await resp.arrayBuffer()
         fs.writeFileSync(outPath, Buffer.from(pdfBuf))
-        console.log(`✅ Pure Vector PDF compiled with real patient data (${pdfBuf.byteLength} bytes) -> [${outPath}]`)
+        console.log(`[INFO] Vector PDF compiled successfully (${pdfBuf.byteLength} bytes) -> [${outPath}]`)
       } catch (err: any) {
-        console.error(`❌ Render failed: ${err.message}`)
-        console.error('   Hint: Make sure medprint-server is running (`cargo run -p medprint-server`).')
+        console.error(`Error: Render failed: ${err.message}`)
+        console.error('Hint: Verify medprint-server is running (cargo run -p medprint-server).')
         process.exit(1)
       }
       break
@@ -200,12 +200,12 @@ async function main(): Promise<void> {
     case 'compile': {
       const jsonPath = args[1]
       if (!jsonPath) {
-        console.error('❌ Error: Missing <ast.json> argument.')
+        console.error('Error: Missing <ast.json> argument.')
         process.exit(1)
       }
       const fullJsonPath = path.resolve(process.cwd(), jsonPath)
       if (!fs.existsSync(fullJsonPath)) {
-        console.error(`❌ Error: AST JSON file not found: ${fullJsonPath}`)
+        console.error(`Error: AST JSON file not found: ${fullJsonPath}`)
         process.exit(1)
       }
 
@@ -220,7 +220,7 @@ async function main(): Promise<void> {
       const rawAst = fs.readFileSync(fullJsonPath, 'utf-8')
       const ast = JSON.parse(rawAst)
 
-      console.log(`📡 Sending AST to compiler server: ${serverUrl}/api/v1/render/compile_pdf ...`)
+      console.log(`[INFO] Sending AST to compiler server: ${serverUrl}/api/v1/render/compile_pdf`)
       try {
         const resp = await fetch(`${serverUrl}/api/v1/render/compile_pdf`, {
           method: 'POST',
@@ -232,17 +232,17 @@ async function main(): Promise<void> {
         }
         const pdfBuf = await resp.arrayBuffer()
         fs.writeFileSync(outPath, Buffer.from(pdfBuf))
-        console.log(`✅ Pure Vector PDF compiled successfully (${pdfBuf.byteLength} bytes) -> [${outPath}]`)
+        console.log(`[INFO] Vector PDF compiled successfully (${pdfBuf.byteLength} bytes) -> [${outPath}]`)
       } catch (err: any) {
-        console.error(`❌ Failed to compile PDF: ${err.message}`)
-        console.error('   Hint: Make sure medprint-server is running (`cargo run -p medprint-server`).')
+        console.error(`Error: Failed to compile PDF: ${err.message}`)
+        console.error('Hint: Verify medprint-server is running (cargo run -p medprint-server).')
         process.exit(1)
       }
       break
     }
 
     default: {
-      console.error(`❌ Unknown command: ${command}`)
+      console.error(`Error: Unknown command: ${command}`)
       printHelp()
       process.exit(1)
     }

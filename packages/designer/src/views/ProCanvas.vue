@@ -68,7 +68,7 @@
             title="显示约束透视与避让禁区：实时呈现障碍物安全缓冲垫与对齐中轴"
             @click="showConstraintGuides = !showConstraintGuides"
           >
-            📐 约束透视
+            约束透视
           </button>
 
         <span class="engine-badge">{{ engineBadge }}</span>
@@ -76,7 +76,7 @@
 
       <div class="toolbar-right">
         <!-- 实验室与功能模态框触发器 -->
-        <button class="tool-action-btn rag-btn" @click="showRagReverse = true">🧬 智能逆向</button>
+        <button class="tool-action-btn rag-btn" @click="showRagReverse = true">逆向解析</button>
         <button class="tool-action-btn" @click="showFormulaLab = true">公式</button>
         <button class="tool-action-btn" @click="showArchive = true">档案</button>
         <button class="tool-action-btn" @click="exportJsonTemplate">导出</button>
@@ -246,9 +246,8 @@
                 <!-- 针打撕纸穿孔线 -->
                 <template v-else-if="el.type === 'perforation'">
                   <div class="el-perforation">
-                    <span class="cut-icon">✂️</span>
                     <span class="cut-line"></span>
-                    <span class="cut-text">针打连续穿孔撕纸线 (LQ-630K)</span>
+                    <span class="cut-text">连续穿孔撕纸线 (针式打印)</span>
                     <span class="cut-line"></span>
                   </div>
                 </template>
@@ -394,7 +393,7 @@
             :class="{ active: rightPanelTab === 'constraints' }"
             @click="rightPanelTab = 'constraints'"
           >
-            📐 约束规格
+            约束规格
           </button>
         </div>
 

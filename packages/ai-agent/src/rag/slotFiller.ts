@@ -1,10 +1,8 @@
 /**
- * Pi Agent 最小化槽位填空引擎 (Pi Slot Filler)
+ * Pi-Agent Minimal Slot Filling Engine
  *
- * 践行业界最小化 Agent (Pi Agent) 理念：
- * 不依赖复杂的 Multi-Agent 争吵与不可控的自主漫游，
- * 将本地 7B/14B 小模型的职责严格约束为“确定性槽位提取与实体映射 (Slot Filling)”。
- * 结合启发式表格正则，实现 100% 结构闭环，杜绝幻觉与格式错乱。
+ * Maps extracted clinical entities and parsed items into golden template AST slots.
+ * Enforces single-page height constraints and applies column flow rules.
  */
 
 import type { DocumentFingerprint } from './fingerprinter.js'
@@ -162,12 +160,12 @@ export async function fillTemplateSlots(
 
   // 7. 单页预算与紧凑度验证
   let compactionAdjusted = false
-  let physicalBudgetSummary = '单页物理高度预算充足 (100% Fit in A5)'
+  let physicalBudgetSummary = '单页物理高度预算充足 (A5)'
   if (itemsCount > 24) {
     compactionAdjusted = true
-    physicalBudgetSummary = `单页硬预算守卫：${itemsCount}项较密集，已自动收紧行距至 4.8mm 以确保绝不跨页。`
+    physicalBudgetSummary = `单页高度守卫：${itemsCount} 项已自动压缩行距至 4.8mm，保持单页完整。`
     template.page_budget = 'SinglePageHard'
-    constraintsApplied.push('锁定单页硬预算守卫 (SinglePageHard)')
+    constraintsApplied.push('单页硬预算守卫 (SinglePageHard)')
   }
 
   return {

@@ -3,8 +3,7 @@
     <div class="batch-modal-card">
       <div class="modal-header">
         <div class="title-wrap">
-          <span class="icon">🖨️</span>
-          <h3>医院批量集中打印与 Spooler 硬件监控</h3>
+          <h3>批量打印与 Spooler 硬件监控</h3>
         </div>
         <button class="btn-close" @click="$emit('close')">✕</button>
       </div>
@@ -21,20 +20,20 @@
         </div>
 
         <div class="hardware-sim-group">
-          <span class="label">物理故障注入测试：</span>
+          <span class="label">硬件状态测试：</span>
           <button
             class="sim-btn"
             :class="{ active: simulatePaperOut }"
             @click="simulatePaperOut = !simulatePaperOut"
           >
-            ⚠️ 模拟缺纸 (Paper Out)
+            模拟缺纸 (PAPER_OUT)
           </button>
           <button
             class="sim-btn"
             :class="{ active: simulatePaperJam }"
             @click="simulatePaperJam = !simulatePaperJam"
           >
-            ⛔ 模拟卡纸 (Paper Jam)
+            模拟卡纸 (PAPER_JAM)
           </button>
         </div>
       </div>
@@ -156,14 +155,14 @@ function startBatchPrint() {
     if (idx >= batchCount.value) {
       clearInterval(timer)
       isPrinting.value = false
-      currentStatusText.value = '✓ 批量打印完毕，全部单据号已核销！'
+      currentStatusText.value = '批量打印完毕，单据处理完成。'
       return
     }
 
     if (simulatePaperOut.value) {
       clearInterval(timer)
       isPrinting.value = false
-      currentStatusText.value = '⚠️ 警报：检测到打印机纸盒物理缺纸 (PAPER_OUT)！系统自动阻断，未出纸号已锁定。'
+      currentStatusText.value = '警告：检测到打印机缺纸 (PAPER_OUT)，作业已暂停。'
       queueJobs.value[idx].statusText = '物理缺纸阻断'
       queueJobs.value[idx].statusClass = 'error'
       queueJobs.value[idx].rowClass = 'row-error'
@@ -173,7 +172,7 @@ function startBatchPrint() {
     if (simulatePaperJam.value) {
       clearInterval(timer)
       isPrinting.value = false
-      currentStatusText.value = '⛔ 警报：检测到打印机纸路卡纸 (PAPER_JAM)！请清理纸路后重试。'
+      currentStatusText.value = '警告：检测到打印机卡纸 (PAPER_JAM)，作业已暂停。'
       queueJobs.value[idx].statusText = '机械卡纸报警'
       queueJobs.value[idx].statusClass = 'error'
       queueJobs.value[idx].rowClass = 'row-error'
@@ -182,7 +181,7 @@ function startBatchPrint() {
 
     queueJobs.value[idx].statusText = '出纸完毕 (JOB_COMPLETED)'
     queueJobs.value[idx].statusClass = 'done'
-    queueJobs.value[idx].receiptText = '✓ 物理已吐纸 / 发票号核销'
+    queueJobs.value[idx].receiptText = '已完成出纸 / 状态确认'
     queueJobs.value[idx].rowClass = 'row-done'
 
     idx++

@@ -1,4 +1,4 @@
-name: "🏥 医疗单据模板需求申报 (Medical Template Request)"
+name: "医疗单据模板需求申报 (Medical Template Request)"
 description: "提交医院特定科室或业务场景的报告单模板需求 (LIS化验/PACS影像/心电图/处方笺)"
 title: "[Template]: "
 labels: ["template", "medical"]

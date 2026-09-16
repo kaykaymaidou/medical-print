@@ -187,9 +187,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let store = Arc::new(LocalArchiveStore::new("data"));
 
     println!("===============================================================");
-    println!(" 🏥 MedPrint All-in-One Standalone Microservice");
-    println!(" Single Binary Solution for Medical Report Designer & Printing");
-    println!(" Local Offline Archive Directory: ./data/templates/");
+    println!(" MedPrint Server (Standalone Microservice)");
+    println!(" Medical Report Designer & Vector PDF Engine");
+    println!(" Template Archive Directory: ./data/templates/");
     println!(" Listening on: http://localhost:{}", port);
     println!(" Web Studio & API: http://127.0.0.1:{}", port);
     println!("===============================================================");
@@ -519,8 +519,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 </head>
 <body>
     <div class="card">
-        <h1>🏥 MedPrint Medical Studio <span class="badge">v0.1.0 Ready</span></h1>
-        <p>面向医疗健康领域的下一代跨平台打印报告单设计器与高性能引擎已成功启动。</p>
+        <h1>MedPrint Medical Studio <span class="badge">v0.1.0</span></h1>
+        <p>医疗报告单设计器与矢量打印服务端已启动。</p>
         <h3>内置服务端点与离线存储 (Endpoints & Offline Storage)</h3>
         <div class="endpoint">GET /api/v1/health - 健康检查</div>
         <div class="endpoint">POST /api/v1/render/compile_pdf - 传入 ReportTemplate AST，编译返回纯矢量高精 PDF</div>

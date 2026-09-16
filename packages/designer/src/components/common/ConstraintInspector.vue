@@ -2,17 +2,16 @@
   <div class="constraint-inspector">
     <div class="panel-header">
       <div class="header-left">
-        <span class="panel-icon">📐</span>
         <h3 class="panel-title">约束驱动排版规格 (Constraint Spec)</h3>
       </div>
-      <span class="engine-badge">纯几何求解 · 零低代码死坐标</span>
+      <span class="engine-badge">几何约束求解</span>
     </div>
 
     <!-- 顶层单页硬预算 -->
     <div class="section-box">
       <div class="section-title">
-        <span>📄 单页预算约束 (Page Budget)</span>
-        <span class="hint">防止临床化验单意外溢出第2页</span>
+        <span>单页预算约束 (Page Budget)</span>
+        <span class="hint">控制报表在单页内完整呈现</span>
       </div>
       <div class="segmented-control">
         <button
@@ -42,7 +41,7 @@
     <!-- 目标元素选择 -->
     <div class="section-box">
       <div class="section-title">
-        <span>🎯 约束目标元素</span>
+        <span>约束目标元素</span>
       </div>
       <div class="element-pills">
         <button
@@ -63,7 +62,7 @@
       <!-- 1. 九宫格锚点定位 -->
       <div class="section-box">
         <div class="section-title">
-          <span>⚓ 9 宫格纸张锚定 (Anchor Position)</span>
+          <span>纸张锚定位置 (Anchor Position)</span>
           <span class="hint">{{ currentConstraints.anchor_position || '未指定 (流式排版)' }}</span>
         </div>
         <div class="nine-grid">
@@ -92,7 +91,7 @@
       <!-- 2. 相对基准几何对齐 (如 Logo 居中对齐标题) -->
       <div class="section-box">
         <div class="section-title">
-          <span>🔗 相对基准几何对齐 (Relative Alignment)</span>
+          <span>相对基准几何对齐 (Relative Alignment)</span>
         </div>
         <div class="field-row">
           <label>基准目标</label>
@@ -136,7 +135,7 @@
       <!-- 3. 空间障碍物避让与折流 (如化验表格避让 TEG 图表) -->
       <div class="section-box">
         <div class="section-title">
-          <span>🛡️ 空间障碍物与避让折流 (Obstacle & Flow)</span>
+          <span>空间障碍物与避让折流 (Obstacle & Flow)</span>
         </div>
         <div class="field-row">
           <label>声明为障碍禁区</label>
@@ -167,7 +166,7 @@
             </select>
           </div>
           <div class="flow-preview-tip">
-            💡 表格流经此区域时，物理几何引擎将实时扣减禁区宽度，保证文字零碰撞。
+            注：表格流经此区域时，几何引擎将动态扣减可用宽度以避免重叠。
           </div>
         </template>
       </div>

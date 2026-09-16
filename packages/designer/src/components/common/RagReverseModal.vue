@@ -9,16 +9,16 @@
             <span class="dot yellow"></span>
             <span class="dot green"></span>
           </div>
-          <h3>🧬 医疗多源文档 RAG 知识库检索与 Pi Agent 逆向生成工作台</h3>
+          <h3>报表逆向解析工作台 (RAG / Pi-Agent)</h3>
         </div>
         <button class="btn-close" @click="$emit('close')">✕</button>
       </div>
 
       <!-- 副标题与说明 -->
       <div class="modal-sub">
-        <span class="badge">医院本地 7B/14B 小模型架构</span>
+        <span class="badge">本地推理架构</span>
         <span class="sub-desc">
-          无需高算力云端大模型，依托“结构指纹 + 黄金标准骨架 RAG 召回 + Pi Agent 最小化槽位填空 + Rust 几何校验”，实现 Word/PDF 到封闭 AST 的 100% 物理合规逆向直出。
+          基于结构指纹抽取、黄金骨架检索、槽位填空与物理几何校验，实现多源文档到报表模板 AST 的逆向生成。
         </span>
       </div>
 
@@ -45,7 +45,7 @@
                 <span class="chip-tag">{{ sample.tag }}</span>
               </button>
               <label class="preset-chip upload-chip" title="支持直接导入葡萄城 .rdlx 报表、Word 提取文本或旧版 JSON">
-                📂 导入外部模板 (.rdlx / .json / .txt)
+                导入外部模板 (.rdlx / .json / .txt)
                 <input type="file" accept=".rdlx,.xml,.json,.txt" @change="handleFileUpload" style="display: none;" />
               </label>
             </div>
@@ -78,8 +78,8 @@
             :disabled="isRunning || !inputText.trim()"
             @click="handleRunReverse"
           >
-            <span v-if="isRunning">⚡ 正在执行 RAG 检索与 Pi Agent 槽位填充...</span>
-            <span v-else>🚀 执行 RAG 骨架召回与 Pi Agent 逆向生成</span>
+            <span v-if="isRunning">正在执行模板检索与槽位解析...</span>
+            <span v-else>执行模板逆向解析</span>
           </button>
         </div>
 
@@ -110,7 +110,7 @@
           <!-- 成果预览与注入操作 -->
           <div v-if="result" class="output-preview-card">
             <div class="preview-header">
-              <span class="preview-title">✅ 生成的封闭 ReportTemplate AST 已就绪</span>
+              <span class="preview-title">报表模板 AST 生成就绪</span>
               <span class="paper-badge">{{ result.slotFilling.physicalBudgetSummary }}</span>
             </div>
             <div class="stats-grid">
@@ -135,7 +135,7 @@
             <!-- 真实业务数据灌入出单演练 -->
             <div class="runtime-data-section">
               <div class="runtime-data-header">
-                <span class="runtime-data-title">🧪 3. 真实患者数据灌入出单演练 (Runtime Data Binding)</span>
+                <span class="runtime-data-title">3. 运行时数据绑定验证 (Runtime Data Binding)</span>
               </div>
               <div class="runtime-scenarios-row">
                 <button
@@ -149,28 +149,28 @@
                 </button>
               </div>
               <div v-if="bindingStats" class="binding-feedback">
-                <span class="binding-tag">✓ 注入 {{ bindingStats.itemsCount }} 项真实化验</span>
-                <span v-if="bindingStats.criticalCount > 0" class="binding-tag critical">🚨 {{ bindingStats.criticalCount }} 项危急值</span>
-                <span v-if="bindingStats.highCount > 0" class="binding-tag high">↑ {{ bindingStats.highCount }} 项偏高</span>
-                <span v-if="bindingStats.lowCount > 0" class="binding-tag low">↓ {{ bindingStats.lowCount }} 项偏低</span>
-                <span v-if="bindingStats.formulasComputed.length > 0" class="binding-tag formula">🧮 {{ bindingStats.formulasComputed.join(', ') }}</span>
-                <span class="binding-tag budget">📐 行高 {{ bindingStats.appliedRowHeightMm }}mm (100% Fit in A5)</span>
+                <span class="binding-tag">检验项: {{ bindingStats.itemsCount }}</span>
+                <span v-if="bindingStats.criticalCount > 0" class="binding-tag critical">危急值: {{ bindingStats.criticalCount }}</span>
+                <span v-if="bindingStats.highCount > 0" class="binding-tag high">偏高: {{ bindingStats.highCount }}</span>
+                <span v-if="bindingStats.lowCount > 0" class="binding-tag low">偏低: {{ bindingStats.lowCount }}</span>
+                <span v-if="bindingStats.formulasComputed.length > 0" class="binding-tag formula">计算公式: {{ bindingStats.formulasComputed.join(', ') }}</span>
+                <span class="binding-tag budget">行高: {{ bindingStats.appliedRowHeightMm }}mm (A5)</span>
               </div>
             </div>
 
             <!-- 操作按钮组 -->
             <div class="action-footer">
               <button class="apple-btn-secondary" @click="handleCompilePdf">
-                📄 编译纯矢量 PDF 预览 (Rust)
+                编译矢量 PDF (Rust)
               </button>
               <button class="apple-btn-primary" @click="handleApplyToCanvas">
-                ✨ 一键注入当前设计器画布
+                应用至设计器画布
               </button>
             </div>
           </div>
           <div v-else class="empty-placeholder">
-            <div class="placeholder-icon">🧬</div>
-            <p>在左侧选择临床样例或粘贴异构文本，点击执行即可实时观察四步生成流水线</p>
+            <div class="placeholder-icon">[模板]</div>
+            <p>在左侧选择临床样例或粘贴文本，点击执行即可实时观察流水线解析过程</p>
           </div>
         </div>
       </div>

@@ -1,13 +1,9 @@
 /**
- * MedPrint 几何优先排版切分与原子结构化 Chunking 算法
+ * MedPrint Geometric Chunking & Atomic Layout Parsing
  * 
- * 解决传统 RAG 纯文本切分导致的“A5双列横切串行”与“数字碎片化”死穴。
- * 核心逻辑：
- * 1. 物理几何先行：通过 Y 轴水平投影检测页眉、主体表格与责任页尾；
- * 2. X 轴直方图投影：检测列数与空白槽（Whitespace Gutters），智能识别 A5 双列折流（Snaking Flow）；
- * 3. 分级原子切分：表格作为单一原子网格块保留，绝不跨行截断；
- * 4. 键值对邻近语义锚定：提取姓名、科室、病案号等元数据；
- * 5. 防错兜底与歧义消除：置信度低于 75% 触发自适应结构归纳（Adaptive Induction）。
+ * Performs vertical projection banding (Header, PatientBanner, Table, Footer),
+ * horizontal histogram projection for gutter detection, and atomic table grid extraction
+ * to preserve multi-column and snaking-flow structures.
  */
 
 import type { DocumentFingerprint } from './fingerprinter.js'

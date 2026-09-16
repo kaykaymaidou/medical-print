@@ -445,8 +445,8 @@ export class MedPrintToolExecutor {
           is_valid_for_print: has_signatures && has_barcode,
           issues,
           message: issues.length === 0
-            ? '✅ 医疗合规性审查 100% 通过（三级签名、条码、印章、免责标语均齐全）。'
-            : `⚠️ 存在 ${issues.length} 项合规提示：${issues.join('；')}`,
+            ? '医疗合规审查通过：三级责任签名、条码、印章及声明齐全。'
+            : `发现 ${issues.length} 项合规提示：${issues.join('；')}`,
         }
       }
 
@@ -456,7 +456,7 @@ export class MedPrintToolExecutor {
           job_id: Math.floor(Math.random() * 9000 + 1000),
           spooler_events: ['QUEUED', 'PRINTING', 'JOB_COMPLETED'],
           paper_ejected: true,
-          message: '静默打印完成，物理纸张已脱离出纸口，处方单据号已核销。',
+          message: '静默打印完成，纸张已正常送出，单据状态已更新。',
         }
 
       case 'apply_layout_constraints': {
@@ -472,7 +472,7 @@ export class MedPrintToolExecutor {
         }
         if (obstacle_avoidance) {
           summaryParts.push(
-            `声明为空间障碍物 (安全间距 ${obstacle_avoidance.safe_padding_mm || 2}mm, 避让折流: ${obstacle_avoidance.flow_behavior || 'AvoidAndNarrow'})`,
+            `空间障碍物 (安全间距 ${obstacle_avoidance.safe_padding_mm || 2}mm, 避让折流: ${obstacle_avoidance.flow_behavior || 'AvoidAndNarrow'})`,
           )
         }
         if (page_budget) {
@@ -488,7 +488,7 @@ export class MedPrintToolExecutor {
             obstacle_avoidance: obstacle_avoidance || null,
             page_budget: page_budget || null,
           },
-          message: `✅ 已成功为元素 [${target_element}] 应用空间几何约束：${summaryParts.join('；')}。底层求解器将自动计算零碰撞绝对坐标。`,
+          message: `已为元素 [${target_element}] 配置几何约束：${summaryParts.join('；')}。`,
         }
       }
 
@@ -508,7 +508,7 @@ export class MedPrintToolExecutor {
           fingerprint: fp,
           template: res.template,
           elapsed_ms: res.elapsedMs,
-          message: `✅ 葡萄城 RDLX 模板解析成功！提取到 ${rdlx.dataset1Fields.length} 个检验明细字段与 ${rdlx.patientFields.length} 个患者字段，已转换为 MedPrint 声明式物理 AST。`,
+          message: `RDLX 模板解析完成，提取 ${rdlx.dataset1Fields.length} 个检验字段与 ${rdlx.patientFields.length} 个患者字段。`,
         }
       }
 
@@ -523,7 +523,7 @@ export class MedPrintToolExecutor {
           template: res.template,
           pipeline_steps: res.pipelineSteps,
           elapsed_ms: res.elapsedMs,
-          message: `✅ 逆向生成成功！命中骨架【${res.retrieval.matchedArchetype.name}】(${(res.retrieval.confidence * 100).toFixed(1)}%)，耗时 ${res.elapsedMs}ms。`,
+          message: `逆向解析完成，匹配骨架【${res.retrieval.matchedArchetype.name}】(${(res.retrieval.confidence * 100).toFixed(1)}%)，耗时 ${res.elapsedMs}ms。`,
         }
       }
 
@@ -534,7 +534,7 @@ export class MedPrintToolExecutor {
           status: 'success',
           bound_ast: result.boundAst,
           stats: result.stats,
-          message: `✅ 真实数据已成功灌入模板 AST！注入 ${result.stats.itemsCount} 项化验结果（危急值: ${result.stats.criticalCount}, 偏高: ${result.stats.highCount}, 偏低: ${result.stats.lowCount}），行高自适应微调至 ${result.stats.appliedRowHeightMm}mm。`,
+          message: `数据绑定完成：注入 ${result.stats.itemsCount} 项检验数据（危急值: ${result.stats.criticalCount}, 偏高: ${result.stats.highCount}, 偏低: ${result.stats.lowCount}），行高自适应微调至 ${result.stats.appliedRowHeightMm}mm。`,
         }
       }
 

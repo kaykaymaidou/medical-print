@@ -1,4 +1,4 @@
-name: "🇨🇳 信创国产化系统适配反馈 (Xinchuang OS & CPU Feedback)"
+name: "信创国产化系统适配反馈 (Xinchuang OS & CPU Feedback)"
 description: "反馈在统信 UOS、银河麒麟、中科方德等国产操作系统及龙芯、飞腾、鲲鹏硬件上的运行表现"
 title: "[Xinchuang]: "
 labels: ["xinchuang", "linux"]

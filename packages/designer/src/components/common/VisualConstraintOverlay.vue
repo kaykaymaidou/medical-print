@@ -37,7 +37,6 @@
       :style="obs.style"
     >
       <div class="cushion-badge">
-        <span class="shield-icon">🛡️</span>
         <span>避让禁区 +{{ obs.paddingMm }}mm ({{ obs.flowLabel }})</span>
       </div>
       <div class="hatch-pattern"></div>
@@ -50,7 +49,7 @@
       class="align-badge"
       :style="{ left: `${(line.x1 + line.x2) / 2}px`, top: `${line.y1 - 10}px` }"
     >
-      🔗 {{ line.label }}
+      {{ line.label }}
     </div>
 
     <!-- 5. 9 宫格锚点徽标 (Anchor Badges) -->
@@ -60,13 +59,13 @@
       class="anchor-badge"
       :style="{ left: `${anchor.pinX}px`, top: `${anchor.pinY}px` }"
     >
-      ⚓ {{ anchor.label }}
+      {{ anchor.label }}
     </div>
 
     <!-- 6. 单页硬预算守卫状态浮条 (Page Budget Guard Bar) -->
     <div v-if="template.page_budget === 'SinglePageHard'" class="hard-budget-pill">
       <span class="pulse-dot"></span>
-      <span>单页硬预算守卫激活 · 避让自适应排版 · 100% 零跨页</span>
+      <span>单页预算守卫 · 自适应流式排版</span>
     </div>
   </div>
 </template>

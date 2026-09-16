@@ -3,10 +3,9 @@
     <div class="formula-modal-card">
       <div class="modal-header">
         <div class="title-wrap">
-          <span class="icon">⚗️</span>
           <div>
             <h3>临床检验公式实验室 (Clinical Formula Lab)</h3>
-            <p class="subtitle">内置循证医学计算模型，实时异常阈值判定，一键注入报表模板</p>
+            <p class="subtitle">内置循证医学计算模型，支持指标关联计算与参考区间判定</p>
           </div>
         </div>
         <button class="btn-close" @click="$emit('close')">✕</button>
@@ -80,7 +79,7 @@
       <div class="modal-footer">
         <button class="apple-btn-secondary" @click="$emit('close')">取消</button>
         <button class="apple-btn-primary" @click="handleInsertToReport">
-          📥 将本公式项目插入报表模板
+          将公式项目插入报表模板
         </button>
       </div>
     </div>
@@ -282,7 +281,7 @@ const evaluationResult = computed(() => {
     statusText = '↓ 偏低 (LOW)'
   } else if (res.flag === 'CRITICAL') {
     statusClass = 'critical'
-    statusText = '⚠️ 危急值 (CRITICAL)'
+    statusText = '危急值 (CRITICAL)'
   }
   return {
     value: res.value,

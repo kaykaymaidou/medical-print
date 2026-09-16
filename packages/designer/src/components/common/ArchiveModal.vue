@@ -8,14 +8,14 @@
             <span class="dot yellow"></span>
             <span class="dot green"></span>
           </div>
-          <h3>🗄️ 医院内网本地模板档案库 (Offline Archive)</h3>
+          <h3>本地模板档案库 (Offline Archive)</h3>
         </div>
         <button class="btn-close" @click="$emit('close')">✕</button>
       </div>
 
       <div class="modal-sub">
-        <span class="badge">SQLite / 离线文件存储模式</span>
-        <span class="sub-desc">专为医院内网隔离环境设计，无需外网，所有模板与历史均持久化在本地终端</span>
+        <span class="badge">离线存储模式</span>
+        <span class="sub-desc">专为内网隔离环境设计，无需外部网络，模板数据持久化于本地</span>
       </div>
 
       <div class="archive-list">
@@ -33,10 +33,10 @@
 
       <div class="modal-footer">
         <button class="apple-btn-primary" @click="$emit('export-bundle')">
-          📦 导出全量内网归档备份包 (.json)
+          导出全量归档备份包 (.json)
         </button>
         <label class="apple-btn-secondary file-btn">
-          📂 导入模板文件
+          导入模板文件
           <input type="file" accept=".json,.medprint" @change="$emit('import-file', $event)" style="display: none;" />
         </label>
       </div>

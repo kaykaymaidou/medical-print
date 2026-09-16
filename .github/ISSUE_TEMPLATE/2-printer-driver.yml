@@ -1,4 +1,4 @@
-name: "🖨️ 打印机硬件与状态回调兼容性报告 (Printer Hardware Compatibility)"
+name: "打印机硬件与状态回调兼容性报告 (Printer Hardware Compatibility)"
 description: "反馈特定品牌/型号打印机在静默打印、缺纸/卡纸回调、双向状态监听中的实测结果"
 title: "[Hardware]: "
 labels: ["hardware", "printer-spooler"]
